@@ -17,26 +17,27 @@ class Product {
     this.imageUrl,
   });
 
-  // Untuk mengubah JSON dari PHP ke Object Flutter
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      id: json['id'],
-      name: json['nama_produk'],
-      price: int.parse(json['harga']),
-      stock: int.parse(json['stok']),
-      category: json['kategori'],
-      description: json['deskripsi'],
-      imageUrl: json['foto'],
+      // Menggunakan .toString() agar aman jika id berupa int atau string dari database
+      id: json['id_product']?.toString(), 
+      name: json['nama_produk'] ?? '',
+      // Trik aman: Ubah ke string dulu baru parse ke int
+      price: int.parse(json['harga'].toString()), 
+      stock: int.parse(json['stok'].toString()),
+      category: json['nama_kategori'] ?? json['id_category'].toString(),
+      description: json['deskripsi'] ?? '',
+      imageUrl: json['gambar_produk'], // Sesuaikan dengan kolom 'gambar_produk' di MySQL
     );
   }
 
-  // Untuk mengirim data dari Flutter ke PHP
   Map<String, dynamic> toJson() => {
-    "id": id,
+    "id_product": id,
     "nama_produk": name,
-    "harga": price.toString(),
-    "stok": stock.toString(),
-    "kategori": category,
+    "harga": price, // Kirim sebagai int saja agar lebih clean
+    "stok": stock,
+    "id_category": category, // Kirim ID kategori
     "deskripsi": description,
+    "gambar_produk": imageUrl,
   };
-} 
+}
