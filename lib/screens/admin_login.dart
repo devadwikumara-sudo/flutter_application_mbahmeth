@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
 import 'package:flutter_application_mbahmeth/screens/customer_login.dart';
-import 'package:flutter_application_mbahmeth/widgets/custom_text_field.dart';
-import 'package:flutter_application_mbahmeth/widgets/primary_button.dart';
+import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/custom_text_field.dart';
+import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/primary_button.dart';
+import 'package:flutter_application_mbahmeth/admin/dashboard.dart';
 
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -180,7 +181,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
             PrimaryButton(
               text: 'Masuk',
               onPressed: () {
-                // TODO: Implement Admin Login
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AdminDashboard()),
+                );
               },
             ),
             const SizedBox(height: 24),

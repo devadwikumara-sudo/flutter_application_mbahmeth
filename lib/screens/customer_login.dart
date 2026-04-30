@@ -6,8 +6,8 @@ import 'package:flutter_application_mbahmeth/screens/failure_screen.dart';
 import 'package:flutter_application_mbahmeth/screens/success_screen.dart';
 import 'package:flutter_application_mbahmeth/screens/forgot_password.dart';
 import 'package:flutter_application_mbahmeth/customer/customer.dart';
-import 'package:flutter_application_mbahmeth/widgets/custom_text_field.dart';
-import 'package:flutter_application_mbahmeth/widgets/primary_button.dart';
+import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/custom_text_field.dart';
+import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/primary_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

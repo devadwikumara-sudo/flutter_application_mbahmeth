@@ -175,10 +175,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildCategoryItem(Icons.medication_liquid, 'Obat Pertanian'),
-              _buildCategoryItem(Icons.water_drop, 'Pupuk'),
-              _buildCategoryItem(Icons.grass, 'Bibit / Benih'),
-              _buildCategoryItem(Icons.agriculture, 'Alat Pertanian'),
+              _buildCategoryItem('assets/images/Obat Pertanian.png', 'Obat Pertanian'),
+              _buildCategoryItem('assets/images/Pupuk.png', 'Pupuk'),
+              _buildCategoryItem('assets/images/BibitBenih.png', 'Bibit / Benih'),
+              _buildCategoryItem('assets/images/Alat Pertanian.png', 'Alat Pertanian'),
             ],
           ),
         ],
@@ -186,7 +186,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  Widget _buildCategoryItem(IconData icon, String label) {
+  Widget _buildCategoryItem(String imagePath, String label) {
     return Column(
       children: [
         Container(
@@ -196,7 +196,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), spreadRadius: 1, blurRadius: 4, offset: const Offset(0, 2))],
           ),
-          child: Center(child: Icon(icon, color: AppColors.primaryGreen, size: 36)),
+          child: Center(
+            child: Image.asset(
+              imagePath,
+              width: 36,
+              height: 36,
+              fit: BoxFit.contain,
+            ),
+          ),
         ),
         const SizedBox(height: 8),
         SizedBox(

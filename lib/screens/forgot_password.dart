@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
 import 'package:flutter_application_mbahmeth/screens/success_screen.dart';
 import 'package:flutter_application_mbahmeth/screens/failure_screen.dart';
-import 'package:flutter_application_mbahmeth/widgets/custom_text_field.dart';
-import 'package:flutter_application_mbahmeth/widgets/primary_button.dart';
+import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/custom_text_field.dart';
+import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/primary_button.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
