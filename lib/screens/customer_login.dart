@@ -8,6 +8,8 @@ import 'package:flutter_application_mbahmeth/screens/forgot_password.dart';
 import 'package:flutter_application_mbahmeth/customer/customer.dart';
 import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/custom_text_field.dart';
 import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/primary_button.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,16 +21,42 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
-  void _handleLogin() {
-    // Simple mock logic: if email is empty or not "user", simulate failure
-    if (_emailController.text == 'user') {
+ // Ganti fungsi lama di customer_login.dart dengan ini
+void _handleLogin() async {
+  String email = _emailController.text;
+  String password = _passwordController.text; // Pastikan controller password sudah ada
+
+  if (email.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Email dan Password harus diisi')),
+    );
+    return;
+  }
+
+  // Panggil fungsi API login
+  await loginUser(email, password);
+}
+Future<void> loginUser(String email, String password) async {
+  try {
+    final response = await http.post(
+      // Ganti IP_LAPTOP dengan IP asli dari cmd (ipconfig)
+      Uri.parse("http://192.168.0.51/toko_mbahmeth/api/login.php"),
+      body: {"email": email, "password": password},
+    );
+
+    var data = json.decode(response.body);
+
+    if (data['status'] == "success") {
+      if (!mounted) return;
+      // Jika berhasil, arahkan ke SuccessScreen (Source 5)
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => SuccessScreen(
             title: 'Masuk Berhasil',
-            subtitle: 'Selamat Datang Pengguna',
+            subtitle: 'Selamat Datang, ${data['user']['nama']}',
             onPressed: () {
               Navigator.pushAndRemoveUntil(
                 context,
@@ -40,21 +68,31 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } else {
+      if (!mounted) return;
+      // Jika gagal (email/password salah), arahkan ke FailureScreen (Source 5)
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => FailureScreen(
-            title: 'Masuk Gagal',
+            title: data['message'] ?? 'Masuk Gagal',
             onPressed: () => Navigator.pop(context),
           ),
         ),
       );
     }
+  } catch (e) {
+    debugPrint("Error: $e");
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Gagal terhubung ke server Laragon')),
+    );
   }
+}
 
   @override
   void dispose() {
     _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -183,6 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const Text('Kata Sandi', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
             const SizedBox(height: 8),
             CustomTextField(
+              controller: _passwordController,
               obscureText: _obscurePassword,
               hintText: 'Masukkan Kata Sandi',
               prefixIcon: Icons.lock_outline,

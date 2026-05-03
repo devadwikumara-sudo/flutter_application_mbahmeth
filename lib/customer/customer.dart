@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
+import 'package:flutter_application_mbahmeth/customer/catalog.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -173,28 +174,49 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildCategoryItem('assets/images/Obat Pertanian.png', 'Obat Pertanian'),
-              _buildCategoryItem('assets/images/Pupuk.png', 'Pupuk'),
-              _buildCategoryItem('assets/images/BibitBenih.png', 'Bibit / Benih'),
-              _buildCategoryItem('assets/images/Alat Pertanian.png', 'Alat Pertanian'),
-            ],
-          ),
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    // 1 = Obat, 2 = Pupuk, 3 = Bibit, 4 = Alat
+    _buildCategoryItem('assets/images/Obat Pertanian.png', 'Obat Pertanian', 1),
+    _buildCategoryItem('assets/images/Pupuk.png', 'Pupuk', 2),
+    _buildCategoryItem('assets/images/BibitBenih.png', 'Bibit / Benih', 3),
+    _buildCategoryItem('assets/images/Alat Pertanian.png', 'Alat Pertanian', 4),
+  ],
+),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryItem(String imagePath, String label) {
-    return Column(
+  Widget _buildCategoryItem(String imagePath, String label, int idCategory) {
+  return GestureDetector(
+    onTap: () {
+      // Alur: Berpindah ke halaman katalog dengan membawa ID Kategori
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CatalogScreen(
+            categoryName: label,
+            idCategory: idCategory, // ID ini digunakan untuk query ke database
+          ),
+        ),
+      );
+    },
+    child: Column(
       children: [
         Container(
           width: 70, height: 70,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), spreadRadius: 1, blurRadius: 4, offset: const Offset(0, 2))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05), 
+                spreadRadius: 1, 
+                blurRadius: 4, 
+                offset: const Offset(0, 2)
+              )
+            ],
           ),
           child: Center(
             child: Image.asset(
@@ -208,12 +230,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         const SizedBox(height: 8),
         SizedBox(
           width: 80,
-          child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textDark)),
+          child: Text(
+            label, 
+            textAlign: TextAlign.center, 
+            style: const TextStyle(
+              fontSize: 12, 
+              fontWeight: FontWeight.w500, 
+              color: AppColors.textDark
+            )
+          ),
         ),
       ],
-    );
-  }
-
+    ),
+  );
+}
   Widget _buildProductSection() {
     return Container(
       color: const Color(0xFFF8F9FA),
