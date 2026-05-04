@@ -27,7 +27,7 @@ class _OrderListPageState extends State<OrderListPage> {
       "price": "18.250",
       "time": "15 menit lalu",
       "status": "Tertunda",
-      "img": "https://via.placeholder.com/100"
+      "img": Image.asset('assets/images/pupuk_kno_m_002.png', width: 80, height: 100, fit: BoxFit.cover),
     },
     {
       "id": "Bibit-Perkasa-003",
@@ -174,7 +174,7 @@ class _OrderListPageState extends State<OrderListPage> {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // PAKAI EXPANDED: Biar teks tahu batas lebarnya dan tidak meluber
+        // EXPANDED
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

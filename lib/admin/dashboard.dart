@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'users_semua.dart';
+import 'package:flutter_application_mbahmeth/admin/admin_crud/presentation/pages/product_list_page.dart';
+import 'package:flutter_application_mbahmeth/admin/admin_orders/presentation/pages/order_list_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -119,21 +121,39 @@ class AdminDashboard extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            const MenuCard(
-              title: "Kelola Produk",
-              subtitle: "Tambah, edit, atau hapus produk",
-              icon: Icons.inventory_2_outlined,
-              color: Colors.green,
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProductListPage()
+                  ),
+                );
+              },
+              child: const MenuCard(
+                title: "Kelola Produk",
+                subtitle: "Tambah, edit, atau hapus produk",
+                icon: Icons.inventory_2_outlined,
+                color: Colors.green,
               textWhite: true,
+              ),
             ),
 
             const SizedBox(height: 12),
 
-            const MenuCard(
-              title: "Kelola Pesanan",
-              subtitle: "Memproses pesanan pelanggan",
-              icon: Icons.receipt_long_outlined,
-              color: Colors.white,
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const OrderListPage()
+                  ),
+                );
+              },
+              child: const MenuCard(
+                title: "Kelola Pesanan",
+                subtitle: "Memproses pesanan pelanggan",
+                icon: Icons.receipt_long_outlined,
+                color: Colors.white,
+              ),
             ),
 
             const SizedBox(height: 12),
