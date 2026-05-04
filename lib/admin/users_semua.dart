@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+// Import halaman produk jika diperlukan untuk navigasi
+// import 'admin/admin_crud/presentation/pages/product_list_page.dart';
 
 class UsersSemua extends StatefulWidget {
   const UsersSemua({super.key});
@@ -54,7 +56,6 @@ class _UsersSemuaState extends State<UsersSemua> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffF5F5F5),
-
       body: SafeArea(
         child: Column(
           children: [
@@ -75,15 +76,12 @@ class _UsersSemuaState extends State<UsersSemua> {
                     ),
                   ),
                   const SizedBox(width: 10),
-
                   const CircleAvatar(
                     radius: 22,
                     backgroundColor: Colors.white,
                     child: Icon(Icons.store, color: Colors.green),
                   ),
-
                   const SizedBox(width: 10),
-
                   const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -107,9 +105,7 @@ class _UsersSemuaState extends State<UsersSemua> {
                 ],
               ),
             ),
-
             const SizedBox(height: 14),
-
             const Text(
               "Kelola Pengguna",
               style: TextStyle(
@@ -117,9 +113,7 @@ class _UsersSemuaState extends State<UsersSemua> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-
             const SizedBox(height: 14),
-
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
@@ -128,8 +122,7 @@ class _UsersSemuaState extends State<UsersSemua> {
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 0),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
@@ -137,9 +130,7 @@ class _UsersSemuaState extends State<UsersSemua> {
                 ),
               ),
             ),
-
             const SizedBox(height: 14),
-
             Row(
               children: [
                 tabButton("Semua", 0),
@@ -147,7 +138,6 @@ class _UsersSemuaState extends State<UsersSemua> {
                 tabButton("Pelanggan", 2),
               ],
             ),
-
             Row(
               children: [
                 tabLine(0),
@@ -155,15 +145,12 @@ class _UsersSemuaState extends State<UsersSemua> {
                 tabLine(2),
               ],
             ),
-
             const SizedBox(height: 5),
-
             Expanded(
               child: ListView.builder(
                 itemCount: filteredUsers.length,
                 itemBuilder: (context, index) {
                   final user = filteredUsers[index];
-
                   return UserTile(
                     name: user["name"],
                     email: user["email"],
@@ -178,37 +165,39 @@ class _UsersSemuaState extends State<UsersSemua> {
         ),
       ),
 
+      // NAVBAR YANG DISAMAKAN PERSIS
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2,
+        currentIndex: 2, // Posisi aktif di ikon 'User'
         backgroundColor: const Color(0xff2E9900),
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
         type: BottomNavigationBarType.fixed,
         onTap: (index) {
           if (index == 0) {
-            Navigator.pop(context);
+            Navigator.pop(context); // Kembali ke Home/Dashboard
           }
+          // Tambahkan navigasi index lain jika diperlukan di sini
         },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
-            label: "",
+            label: "Home",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.list_alt),
-            label: "",
+            label: "Produk",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.edit),
-            label: "",
+            label: "User",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.inventory_2_outlined),
-            label: "",
+            label: "Stok",
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
-            label: "",
+            label: "Profil",
           ),
         ],
       ),
@@ -217,7 +206,6 @@ class _UsersSemuaState extends State<UsersSemua> {
 
   Widget tabButton(String text, int index) {
     final active = selectedTab == index;
-
     return Expanded(
       child: InkWell(
         onTap: () {
@@ -232,8 +220,7 @@ class _UsersSemuaState extends State<UsersSemua> {
               text,
               style: TextStyle(
                 fontSize: 14,
-                fontWeight:
-                    active ? FontWeight.bold : FontWeight.normal,
+                fontWeight: active ? FontWeight.bold : FontWeight.normal,
                 color: active ? Colors.black : Colors.grey,
               ),
             ),
@@ -247,8 +234,7 @@ class _UsersSemuaState extends State<UsersSemua> {
     return Expanded(
       child: Container(
         height: 2,
-        color:
-            selectedTab == index ? Colors.green : Colors.transparent,
+        color: selectedTab == index ? Colors.green : Colors.transparent,
       ),
     );
   }
@@ -274,9 +260,7 @@ class UserTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       tileColor: Colors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Stack(
         children: [
           const CircleAvatar(
@@ -299,7 +283,6 @@ class UserTile extends StatelessWidget {
           ),
         ],
       ),
-
       title: Text(
         name,
         style: const TextStyle(
@@ -307,12 +290,10 @@ class UserTile extends StatelessWidget {
           fontSize: 13,
         ),
       ),
-
       subtitle: Text(
         email,
         style: const TextStyle(fontSize: 11),
       ),
-
       trailing: SizedBox(
         width: 95,
         child: Column(
