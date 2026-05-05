@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   // Ganti IP_LAPTOP dengan IP asli Anda (cek via cmd: ipconfig)
-  static const String baseUrl = "http://192.168.0.51/toko_mbahmeth/api";
+  static const String baseUrl = "http://10.0.2.2/toko_mbahmeth/api";
 
   // 1. Fungsi Login
   Future<Map<String, dynamic>> login(String email, String password) async {
