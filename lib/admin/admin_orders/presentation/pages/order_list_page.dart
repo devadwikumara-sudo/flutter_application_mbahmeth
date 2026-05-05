@@ -8,10 +8,9 @@ class OrderListPage extends StatefulWidget {
 }
 
 class _OrderListPageState extends State<OrderListPage> {
-  // Status: Tertunda, Pengolahan, Selesai
   String _activeTab = "Tertunda";
 
-  // Data dummy
+  // Perbaikan Data dummy: Gunakan String Path saja untuk gambar
   final List<Map<String, dynamic>> _allOrders = [
     {
       "id": "Insekti-200ec-001",
@@ -19,7 +18,7 @@ class _OrderListPageState extends State<OrderListPage> {
       "price": "18.000",
       "time": "2 menit lalu",
       "status": "Tertunda",
-      "img": "https://via.placeholder.com/100" // Nanti ganti path asetmu
+      "img": "https://via.placeholder.com/100" // Ini URL
     },
     {
       "id": "Pupuk-KNO M-002",
@@ -27,7 +26,7 @@ class _OrderListPageState extends State<OrderListPage> {
       "price": "18.250",
       "time": "15 menit lalu",
       "status": "Tertunda",
-      "img": Image.asset('assets/images/pupuk_kno_m_002.png', width: 80, height: 100, fit: BoxFit.cover),
+      "img": "assets/images/kno_merah.png", // Ini Path Local
     },
     {
       "id": "Bibit-Perkasa-003",
@@ -35,15 +34,6 @@ class _OrderListPageState extends State<OrderListPage> {
       "price": "64.000",
       "time": "42 menit lalu",
       "status": "Tertunda",
-      "img": "https://via.placeholder.com/100"
-    },
-    // Contoh data untuk tab lain
-    {
-      "id": "Insekti-200ec-001",
-      "customer": "Purbaya",
-      "price": "26.000",
-      "time": "2 menit lalu",
-      "status": "Pengolahan",
       "img": "https://via.placeholder.com/100"
     },
   ];
@@ -57,19 +47,19 @@ class _OrderListPageState extends State<OrderListPage> {
       backgroundColor: const Color(0xFFF8F8F8),
       body: Column(
         children: [
-          // HEADER HIJAU
+          // HEADER HIJAU DENGAN TOMBOL BACK
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 25, 20, 20),
+            padding: const EdgeInsets.fromLTRB(10, 40, 20, 20), // Sesuaikan padding atas untuk status bar
             decoration: const BoxDecoration(
               color: Color(0xFF2E9900),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(0),
-                bottomRight: Radius.circular(0),
-              ),
             ),
             child: Row(
               children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context), // Biar bisa balik ke Dashboard
+                ),
                 const CircleAvatar(
                   backgroundColor: Colors.white,
                   child: Icon(Icons.eco, color: Color(0xFF2E9900)),
@@ -88,38 +78,36 @@ class _OrderListPageState extends State<OrderListPage> {
             ),
           ),
 
-          // TAB BAR DENGAN BADGE
+          // TAB BAR
           Container(
             color: Colors.white,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildTabItem("Tertunda", ""),
-                _buildTabItem("Pengolahan", ""),
-                _buildTabItem("Selesai", ""),
+                _buildTabItem("Tertunda", "${_allOrders.where((o) => o['status'] == "Tertunda").length}"),
+                _buildTabItem("Pengolahan", "0"),
+                _buildTabItem("Selesai", "0"),
               ],
             ),
           ),
 
           // LIST PESANAN
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(15),
-              itemCount: filteredOrders.length,
-              itemBuilder: (context, index) {
-                return _buildOrderCard(filteredOrders[index]);
-              },
-            ),
+            child: filteredOrders.isEmpty 
+              ? const Center(child: Text("Belum ada pesanan"))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(15),
+                  itemCount: filteredOrders.length,
+                  itemBuilder: (context, index) {
+                    return _buildOrderCard(filteredOrders[index]);
+                  },
+                ),
           ),
         ],
       ),
-      
-      // BOTTOM NAVIGATION BAR
-
     );
   }
 
-  // Widget untuk Tab Item
   Widget _buildTabItem(String title, String count) {
     bool isActive = _activeTab == title;
     return GestureDetector(
@@ -143,118 +131,116 @@ class _OrderListPageState extends State<OrderListPage> {
               ),
             ),
             const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F5E9),
-                shape: BoxShape.circle,
-              ),
-              child: Text(count, style: const TextStyle(fontSize: 10, color: Colors.brown)),
-            )
+            if (count != "0")
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(count, style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
+              )
           ],
         ),
       ),
     );
   }
 
-  // Widget untuk Kartu Pesanan
   Widget _buildOrderCard(Map<String, dynamic> data) {
-  Color statusColor = _activeTab == "Tertunda" ? Colors.red : 
-                      (_activeTab == "Pengolahan" ? Colors.orange : Colors.green);
-  String btnLabel = _activeTab == "Tertunda" ? "Menerima" : "Siap";
+    Color statusColor = _activeTab == "Tertunda" ? Colors.red : 
+                        (_activeTab == "Pengolahan" ? Colors.orange : Colors.green);
+    String btnLabel = _activeTab == "Tertunda" ? "Menerima" : "Siap";
 
-  return Container(
-    margin: const EdgeInsets.only(bottom: 15),
-    padding: const EdgeInsets.all(16), // Padding diperbesar biar lega
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(25),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // EXPANDED
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(data['status'].toUpperCase(), 
-                      style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
-                  ),
-                  Text(data['time'], style: const TextStyle(color: Colors.grey, fontSize: 11)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Tambahkan overflow: TextOverflow.ellipsis biar kalau kepanjangan jadi titik-titik
-              Text("Order #${data['id']}", 
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              Text("Pelanggan : ${data['customer']}", 
-                style: const TextStyle(color: Colors.grey, fontSize: 13)),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(Icons.payments_outlined, color: Colors.green, size: 18),
-                  const SizedBox(width: 5),
-                  Text("Rp. ${data['price']}", 
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              // Tombol-tombol
-              Wrap( // Pakai Wrap biar kalau layar kecil tombolnya otomatis pindah ke bawah (tidak overflow)
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (_activeTab != "Selesai")
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2E9900),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(btnLabel, style: const TextStyle(color: Colors.white)),
+                      child: Text(data['status'].toUpperCase(), 
+                        style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
                     ),
-                  OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      side: const BorderSide(color: Colors.grey),
+                    Text(data['time'], style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text("Order #${data['id']}", 
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                Text("Pelanggan : ${data['customer']}", 
+                  style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.payments_outlined, color: Colors.green, size: 18),
+                    const SizedBox(width: 5),
+                    Text("Rp. ${data['price']}", 
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    if (_activeTab != "Selesai")
+                      ElevatedButton(
+                        onPressed: () {},
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2E9900),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: Text(btnLabel, style: const TextStyle(color: Colors.white)),
+                      ),
+                    OutlinedButton(
+                      onPressed: () {},
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text("Detail", style: TextStyle(color: Colors.grey)),
                     ),
-                    child: const Text("Detail", style: TextStyle(color: Colors.grey)),
-                  ),
-                ],
-              )
-            ],
+                  ],
+                )
+              ],
+            ),
           ),
-        ),
-        
-        const SizedBox(width: 12),
-
-        // GANTI GAMBAR DENGAN ICON (Biar nggak error HTTP di Web)
-        Container(
-          width: 80,
-          height: 100,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(15),
+          const SizedBox(width: 12),
+          // LOGIKA TAMPILAN GAMBAR (Penting!)
+          Container(
+            width: 80,
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: data['img'].toString().startsWith('assets') 
+                ? Image.asset(data['img'], fit: BoxFit.cover)
+                : Image.network(data['img'], fit: BoxFit.cover, 
+                    errorBuilder: (c, e, s) => const Icon(Icons.inventory_2, color: Colors.grey, size: 40)),
+            ),
           ),
-          child: const Icon(Icons.inventory_2, color: Colors.grey, size: 40),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 }

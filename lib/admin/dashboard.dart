@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'users_semua.dart';
+// Import halaman yang sudah kamu buat
 import 'package:flutter_application_mbahmeth/admin/admin_crud/presentation/pages/product_list_page.dart';
 import 'package:flutter_application_mbahmeth/admin/admin_orders/presentation/pages/order_list_page.dart';
 
@@ -14,6 +15,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(primarySwatch: Colors.green),
       home: const AdminDashboard(),
     );
   }
@@ -26,12 +28,12 @@ class AdminDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F2),
-
       appBar: AppBar(
         backgroundColor: Colors.green,
+        elevation: 0,
         title: const Text(
           "Admin Dashboard",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         actions: const [
           Padding(
@@ -43,12 +45,12 @@ class AdminDashboard extends StatelessWidget {
           )
         ],
       ),
-
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Welcome Card
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
@@ -59,10 +61,11 @@ class AdminDashboard extends StatelessWidget {
               child: const Text.rich(
                 TextSpan(
                   text: "Selamat datang,\n",
+                  style: TextStyle(fontSize: 16),
                   children: [
                     TextSpan(
                       text: "Admin Mbah Met",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                     )
                   ],
                 ),
@@ -70,12 +73,7 @@ class AdminDashboard extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
-
-            const Text(
-              "Dashboard",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-
+            const Text("Statistik Toko", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
 
             GridView.count(
@@ -94,22 +92,13 @@ class AdminDashboard extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
-
-            const Text(
-              "Menu Cepat",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-
+            const Text("Menu Cepat", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
 
+            // NAVIGASI: KELOLA PENGGUNA
             InkWell(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const UsersSemua(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const UsersSemua()));
               },
               child: const MenuCard(
                 title: "Kelola Pengguna",
@@ -118,35 +107,27 @@ class AdminDashboard extends StatelessWidget {
                 color: Colors.white,
               ),
             ),
-
             const SizedBox(height: 12),
 
+            // NAVIGASI: KELOLA PRODUK (CRUD)
             InkWell(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ProductListPage()
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductListPage()));
               },
               child: const MenuCard(
                 title: "Kelola Produk",
                 subtitle: "Tambah, edit, atau hapus produk",
                 icon: Icons.inventory_2_outlined,
                 color: Colors.green,
-              textWhite: true,
+                textWhite: true,
               ),
             ),
-
             const SizedBox(height: 12),
 
+            // NAVIGASI: KELOLA PESANAN (ORDER LIST)
             InkWell(
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const OrderListPage()
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const OrderListPage()));
               },
               child: const MenuCard(
                 title: "Kelola Pesanan",
@@ -155,116 +136,57 @@ class AdminDashboard extends StatelessWidget {
                 color: Colors.white,
               ),
             ),
-
-            const SizedBox(height: 12),
-
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text(
-                    "Umpan Balik Pelanggan",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.white24,
-                    child: Text(
-                      "3",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  )
-                ],
-              ),
-            ),
           ],
         ),
       ),
 
-      // ===== NAVBAR SUDAH BISA KLIK ICON PENSIL =====
+      // BOTTOM NAVBAR SINKRONISASI
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        backgroundColor: Colors.green,
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.grey,
+        backgroundColor: Colors.white,
         type: BottomNavigationBarType.fixed,
-
         onTap: (index) {
-          if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const UsersSemua(),
-              ),
-            );
+          if (index == 1) { // Icon List Alt -> Ke Order List
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const OrderListPage()));
+          } else if (index == 2) { // Icon Edit -> Ke CRUD Produk
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductListPage()));
+          } else if (index == 3) { // Icon Inventory -> Ke CRUD Produk
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductListPage()));
+          } else if (index == 4) { // Icon Person -> Ke Users
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const UsersSemua()));
           }
         },
-
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: "",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt),
-            label: "",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.edit),
-            label: "",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2_outlined),
-            label: "",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: "",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: "Beranda"),
+          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "Pesanan"),
+          BottomNavigationBarItem(icon: Icon(Icons.edit), label: "Edit"),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), label: "Produk"),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Akun"),
         ],
       ),
     );
   }
 }
 
+// Widget Pendukung
 class InfoCard extends StatelessWidget {
   final String title, value;
-
   const InfoCard(this.title, this.value, {super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.green.shade100,
-        borderRadius: BorderRadius.circular(14),
-      ),
+      decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(14)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(title, style: const TextStyle(fontSize: 13)),
+          Text(title, style: const TextStyle(fontSize: 12, color: Colors.green)),
           const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -289,38 +211,23 @@ class MenuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textColor = textWhite ? Colors.white : Colors.black;
-
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: Colors.white24,
-            child: Icon(icon, color: textColor),
-          ),
+          CircleAvatar(backgroundColor: textWhite ? Colors.white24 : Colors.green.shade50, child: Icon(icon, color: textWhite ? Colors.white : Colors.green)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: textColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: textColor.withOpacity(0.8),
-                    fontSize: 12,
-                  ),
-                ),
+                Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+                Text(subtitle, style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 12)),
               ],
             ),
           ),
