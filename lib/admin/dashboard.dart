@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'users_semua.dart';
 import 'package:flutter_application_mbahmeth/admin/admin_crud/presentation/pages/product_list_page.dart';
 
-// ===== TAMBAHAN (HALAMAN DUMMY, GANTI SESUAI PUNYA KAMU) =====
+// ===== HALAMAN DUMMY =====
 class PesananPage extends StatelessWidget {
   const PesananPage({super.key});
 
@@ -49,7 +49,6 @@ class AdminDashboard extends StatefulWidget {
 class _AdminDashboardState extends State<AdminDashboard> {
   int currentIndex = 0;
 
-  // LIST HALAMAN
   late final List<Widget> pages = [
     _homePage(),
     const PesananPage(),
@@ -61,13 +60,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ===== BODY DIGANTI INDEXEDSTACK =====
       body: IndexedStack(
         index: currentIndex,
         children: pages,
       ),
 
-      // ===== NAVBAR =====
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
         selectedItemColor: Colors.white,
@@ -90,7 +87,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  // ================= HOME PAGE =================
+  // ================= HOME =================
   Widget _homePage() {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F2),
@@ -101,22 +98,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
           "Admin Dashboard",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-              backgroundColor: Colors.white24,
-              child: Icon(Icons.person_outline, color: Colors.white),
-            ),
-          )
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Banner
+            // ===== BANNER =====
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -138,10 +126,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
 
             const SizedBox(height: 20),
+
             const Text("Dashboard", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
 
-            // GRID
+            // ===== GRID =====
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
@@ -158,36 +147,84 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
 
             const SizedBox(height: 20),
+
             const Text("Menu cepat", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
 
-            const MenuCard(
-              title: "Kelola Pengguna",
-              subtitle: "Lihat dan edit akun pengguna",
-              icon: Icons.edit_outlined,
-              color: Color(0xFFD4F5CC),
-              iconBgColor: Colors.white,
+            // ===== MENU =====
+            GestureDetector(
+              onTap: () => setState(() => currentIndex = 2),
+              child: const MenuCard(
+                title: "Kelola Pengguna",
+                subtitle: "Lihat dan edit akun pengguna",
+                icon: Icons.edit_outlined,
+                color: Color(0xFFD4F5CC),
+                iconBgColor: Colors.white,
+              ),
             ),
 
             const SizedBox(height: 12),
 
-            const MenuCard(
-              title: "Kelola Produk",
-              subtitle: "Tambah, edit, atau hapus produk",
-              icon: Icons.inventory_2_outlined,
-              color: Colors.green,
-              textWhite: true,
-              iconBgColor: Colors.white24,
+            GestureDetector(
+              onTap: () => setState(() => currentIndex = 3),
+              child: const MenuCard(
+                title: "Kelola Produk",
+                subtitle: "Tambah, edit, atau hapus produk",
+                icon: Icons.inventory_2_outlined,
+                color: Colors.green,
+                textWhite: true,
+                iconBgColor: Colors.white24,
+              ),
             ),
 
             const SizedBox(height: 12),
 
-            const MenuCard(
-              title: "Kelola Pesanan",
-              subtitle: "Memproses pesanan",
-              icon: Icons.receipt_long_outlined,
-              color: Color(0xFFD4F5CC),
-              iconBgColor: Colors.white,
+            GestureDetector(
+              onTap: () => setState(() => currentIndex = 1),
+              child: const MenuCard(
+                title: "Kelola Pesanan",
+                subtitle: "Memproses pesanan",
+                icon: Icons.receipt_long_outlined,
+                color: Color(0xFFD4F5CC),
+                iconBgColor: Colors.white,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // ===== 🔥 UMPAN BALIK =====
+            GestureDetector(
+              onTap: () => setState(() => currentIndex = 1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2E9900),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Umpan Balik Pelanggan",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF4DBE2E),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Text(
+                        "3",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
 
             const SizedBox(height: 20),
@@ -225,9 +262,7 @@ class InfoCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text(title, style: const TextStyle(fontSize: 12)),
-              const SizedBox(height: 4),
               Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
               Text(percentage, style: const TextStyle(fontSize: 10)),
             ],
           ),
