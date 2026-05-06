@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
-// Import file-file terkait sesuai struktur folder di gambar
-import 'users_semua.dart'; 
-// Sesuaikan baris di bawah ini dengan nama file halaman produk Anda
-// import 'admin/admin_crud/presentation/pages/product_list_page.dart'; 
+import 'users_semua.dart';
+import 'package:flutter_application_mbahmeth/admin/admin_crud/presentation/pages/product_list_page.dart';
 
+// ===== TAMBAHAN (HALAMAN DUMMY, GANTI SESUAI PUNYA KAMU) =====
+class PesananPage extends StatelessWidget {
+  const PesananPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text("Halaman Pesanan"));
+  }
+}
+
+class ProfilAdmin extends StatelessWidget {
+  const ProfilAdmin({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text("Halaman Profil"));
+  }
+}
+
+// ================= MAIN =================
 void main() {
   runApp(const MyApp());
 }
@@ -13,22 +31,72 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const AdminDashboard(),
+      home: AdminDashboard(),
     );
   }
 }
 
-class AdminDashboard extends StatelessWidget {
+// ================= DASHBOARD =================
+class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
+
+  @override
+  State<AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  int currentIndex = 0;
+
+  // LIST HALAMAN
+  late final List<Widget> pages = [
+    _homePage(),
+    const PesananPage(),
+    const UsersSemua(),
+    const ProductListPage(),
+    const ProfilAdmin(),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // ===== BODY DIGANTI INDEXEDSTACK =====
+      body: IndexedStack(
+        index: currentIndex,
+        children: pages,
+      ),
+
+      // ===== NAVBAR =====
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: currentIndex,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
+        backgroundColor: Colors.green,
+        type: BottomNavigationBarType.fixed,
+        onTap: (index) {
+          setState(() {
+            currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "Pesanan"),
+          BottomNavigationBarItem(icon: Icon(Icons.edit), label: "User"),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), label: "Stok"),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Profil"),
+        ],
+      ),
+    );
+  }
+
+  // ================= HOME PAGE =================
+  Widget _homePage() {
+    return Scaffold(
       backgroundColor: const Color(0xFFF2F2F2),
       appBar: AppBar(
         backgroundColor: Colors.green,
+        elevation: 0,
         title: const Text(
           "Admin Dashboard",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
@@ -48,10 +116,10 @@ class AdminDashboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Banner Selamat Datang
+            // Banner
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.green.shade100,
                 borderRadius: BorderRadius.circular(14),
@@ -62,7 +130,7 @@ class AdminDashboard extends StatelessWidget {
                   children: [
                     TextSpan(
                       text: "Admin Mbah Met",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     )
                   ],
                 ),
@@ -70,171 +138,110 @@ class AdminDashboard extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
-            const Text(
-              "Dashboard",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            const Text("Dashboard", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
 
-            // Grid Info Statis
+            // GRID
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.2,
+              childAspectRatio: 1.3,
               children: const [
-                InfoCard("Total Pengguna", "15,284"),
-                InfoCard("Total Produk", "1,837"),
-                InfoCard("Total Pesanan", "8,492"),
-                InfoCard("Pendapatan", "Rp1.145,928"),
+                InfoCard("Total Pengguna", "15,284", Icons.groups_outlined, "+2.4%"),
+                InfoCard("Total Produk", "1,837", Icons.inventory_2_outlined, "+5.1%"),
+                InfoCard("Total Pesanan", "8,492", Icons.receipt_long_outlined, "+3.7%"),
+                InfoCard("Pendapatan", "Rp145.928", Icons.show_chart, "+8.2%"),
               ],
             ),
 
             const SizedBox(height: 20),
-            const Text(
-              "Menu Cepat",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+            const Text("Menu cepat", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
 
-            // Tombol Kelola Pengguna
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const UsersSemua()),
-                );
-              },
-              child: const MenuCard(
-                title: "Kelola Pengguna",
-                subtitle: "Lihat dan edit akun pengguna",
-                icon: Icons.people_alt_outlined,
-                color: Colors.white,
-              ),
+            const MenuCard(
+              title: "Kelola Pengguna",
+              subtitle: "Lihat dan edit akun pengguna",
+              icon: Icons.edit_outlined,
+              color: Color(0xFFD4F5CC),
+              iconBgColor: Colors.white,
             ),
 
             const SizedBox(height: 12),
 
-            // Tombol Kelola Produk (Menyambung ke admin_crud)
-            InkWell(
-              onTap: () {
-                // Ganti 'ProductListPage' dengan nama class di folder admin_crud Anda
-                // Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductListPage()));
-                print("Navigasi ke admin_crud"); 
-              },
-              child: const MenuCard(
-                title: "Kelola Produk",
-                subtitle: "Tambah, edit, atau hapus produk",
-                icon: Icons.inventory_2_outlined,
-                color: Colors.green,
-                textWhite: true,
-              ),
+            const MenuCard(
+              title: "Kelola Produk",
+              subtitle: "Tambah, edit, atau hapus produk",
+              icon: Icons.inventory_2_outlined,
+              color: Colors.green,
+              textWhite: true,
+              iconBgColor: Colors.white24,
             ),
 
             const SizedBox(height: 12),
 
-            // Tombol Kelola Pesanan
             const MenuCard(
               title: "Kelola Pesanan",
-              subtitle: "Memproses pesanan pelanggan",
+              subtitle: "Memproses pesanan",
               icon: Icons.receipt_long_outlined,
-              color: Colors.white,
+              color: Color(0xFFD4F5CC),
+              iconBgColor: Colors.white,
             ),
 
-            const SizedBox(height: 12),
-
-            // Umpan Balik
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text(
-                    "Umpan Balik Pelanggan",
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.white24,
-                    child: Text("3", style: TextStyle(color: Colors.white)),
-                  )
-                ],
-              ),
-            ),
+            const SizedBox(height: 20),
           ],
         ),
-      ),
-
-      // ===== NAVBAR DENGAN LOGIKA NAVIGASI =====
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        backgroundColor: Colors.green,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (index == 1) {
-            // Ikon kedua: Ke Produk (admin_crud)
-            print("Navigasi ke Produk List");
-            // Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductListPage()));
-          } else if (index == 2) {
-            // Ikon ketiga: Ke User
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const UsersSemua()),
-            );
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "Produk"),
-          BottomNavigationBarItem(icon: Icon(Icons.edit), label: "User"),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), label: "Stok"),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Profil"),
-        ],
       ),
     );
   }
 }
 
-// Komponen Card Kecil
+// ================= WIDGET =================
 class InfoCard extends StatelessWidget {
-  final String title, value;
-  const InfoCard(this.title, this.value, {super.key});
+  final String title, value, percentage;
+  final IconData icon;
+
+  const InfoCard(this.title, this.value, this.icon, this.percentage, {super.key});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.green.shade100,
+        color: const Color(0xFFD4F5CC),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
         children: [
-          Text(title, style: const TextStyle(fontSize: 13)),
-          const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Icon(icon, color: Colors.green, size: 24),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: 4),
+              Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(percentage, style: const TextStyle(fontSize: 10)),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-// Komponen Menu List
 class MenuCard extends StatelessWidget {
   final String title, subtitle;
   final IconData icon;
   final Color color;
+  final Color iconBgColor;
   final bool textWhite;
 
   const MenuCard({
@@ -243,25 +250,24 @@ class MenuCard extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.color,
+    required this.iconBgColor,
     this.textWhite = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final textColor = textWhite ? Colors.white : Colors.black;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))
-        ],
       ),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: textWhite ? Colors.white24 : Colors.green.shade100,
+            backgroundColor: iconBgColor,
             child: Icon(icon, color: textWhite ? Colors.white : Colors.green),
           ),
           const SizedBox(width: 12),
@@ -270,7 +276,7 @@ class MenuCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-                Text(subtitle, style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 12)),
+                Text(subtitle, style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11)),
               ],
             ),
           ),
