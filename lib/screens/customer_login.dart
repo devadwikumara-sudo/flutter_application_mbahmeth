@@ -44,10 +44,10 @@ class _LoginScreenState extends State<LoginScreen> {
   // Fungsi API Login dengan Error Handling Lengkap
   Future<void> loginUser(String email, String password) async {
     try {
-      debugPrint("Mencoba koneksi ke: http://10.0.2.2/toko_mbahmeth/api/login.php");
+      debugPrint("Mencoba koneksi ke: http://172.16.103.184/toko_mbahmeth/api/login.php");
 
       final response = await http.post(
-        Uri.parse("http://10.0.2.2/toko_mbahmeth/api/login.php"),
+        Uri.parse("http://172.16.103.184/toko_mbahmeth/api/login.php"),
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },

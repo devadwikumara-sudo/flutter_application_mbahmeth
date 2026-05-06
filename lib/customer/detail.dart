@@ -22,7 +22,7 @@ class _DetailScreenState extends State<DetailScreen> {
   void initState() {
     super.initState();
     // Mengambil stok asli dari data produk database
-    stokMax = int.parse(widget.product['stok'].toString());
+    stokMax = int.tryParse(widget.product['stok']?.toString() ?? '0') ?? 0;
   }
 
   @override
@@ -34,7 +34,7 @@ class _DetailScreenState extends State<DetailScreen> {
           children: [
             // Gambar Produk dari URL Laragon[cite: 1, 3]
             Image.network(
-              "http://192.168.1.4/toko_mbahmeth/assets/images/${widget.product['gambar']}",
+              "http://192.168.0.51/toko_mbahmeth/assets/images/${widget.product['gambar_produk'] ?? widget.product['gambar'] ?? ''}",
               width: double.infinity,
               height: 300,
               fit: BoxFit.cover,
@@ -51,7 +51,7 @@ class _DetailScreenState extends State<DetailScreen> {
                       // Nama Produk dinamis
                       Expanded(
                         child: Text(
-                          widget.product['nama_produk'].toString(),
+                          (widget.product['nama_produk'] ?? widget.product['nama'] ?? 'Tanpa Nama').toString(),
                           style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -65,7 +65,7 @@ class _DetailScreenState extends State<DetailScreen> {
                   const SizedBox(height: 15),
                   const Text("Deskripsi", style: TextStyle(fontWeight: FontWeight.bold)),
                   // Deskripsi dinamis[cite: 1]
-                  Text(widget.product['deskripsi'].toString()),
+                  Text((widget.product['deskripsi'] ?? 'Tidak ada deskripsi').toString()),
                   const SizedBox(height: 30),
                   
                   // Counter Jumlah
@@ -99,7 +99,7 @@ class _DetailScreenState extends State<DetailScreen> {
                         final scaffoldMessenger = ScaffoldMessenger.of(context);
                         bool success = await apiService.addToCart(
                           userId: 1, // Sementara manual ID 1
-                          productId: int.parse(widget.product['id'].toString()), 
+                          productId: int.tryParse((widget.product['id_product'] ?? widget.product['id'])?.toString() ?? '0') ?? 0, 
                           jumlah: jumlah
                         );
                         
