@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
 import 'package:flutter_application_mbahmeth/customer/catalog.dart';
+import 'package:flutter_application_mbahmeth/customer/keranjang_page.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -56,7 +57,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F5E9),
+      backgroundColor: const Color(0xFFD4F3C6), // Disesuaikan dengan warna hijau di desain
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -91,9 +92,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             unselectedItemColor: Colors.white70,
             currentIndex: _bottomNavIndex,
             onTap: (index) {
-              setState(() {
-                _bottomNavIndex = index;
-              });
+              if (index == 1) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CartPage()),
+                );
+              } else {
+                setState(() {
+                  _bottomNavIndex = index;
+                });
+              }
             },
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Beranda'),
@@ -116,7 +124,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(30),
             ),
             child: const TextField(
               decoration: InputDecoration(
@@ -205,24 +213,24 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     child: Column(
       children: [
         Container(
-          width: 70, height: 70,
+          width: 76, height: 76,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05), 
+                color: Colors.black.withOpacity(0.08), 
                 spreadRadius: 1, 
-                blurRadius: 4, 
-                offset: const Offset(0, 2)
+                blurRadius: 6, 
+                offset: const Offset(0, 3)
               )
             ],
           ),
           child: Center(
             child: Image.asset(
               imagePath,
-              width: 36,
-              height: 36,
+              width: 44,
+              height: 44,
               fit: BoxFit.contain,
             ),
           ),
@@ -250,41 +258,42 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
         children: [
-          _buildProductCard('INTEKSIDA ARJUNA 200', 'Rp.7.000', Colors.grey[300]!),
+          _buildProductCard('INTEKSIDA ARJUNA 200', 'Rp.7.000', 'https://images.unsplash.com/photo-1592982537447-6f204c3240fb?auto=format&fit=crop&w=300&q=80'),
           const SizedBox(height: 16),
-          _buildProductCard('CIHERANG 5KG', 'Rp.65.000', Colors.grey[400]!),
+          _buildProductCard('CIHERANG 5KG', 'Rp.65.000', 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=300&q=80'),
           const SizedBox(height: 24),
-          _buildProductCard('JAGUNG PERKASA', 'Rp.26.000', Colors.grey[400]!),
+          _buildProductCard('JAGUNG PERKASA', 'Rp.26.000', 'https://images.unsplash.com/photo-1599573838423-74b8895b6c86?auto=format&fit=crop&w=300&q=80'),
           const SizedBox(height: 24),
-          _buildProductCard('KNO MERAH', 'Rp.12.250', Colors.grey[400]!),
+          _buildProductCard('KNO MERAH', 'Rp.12.250', 'https://images.unsplash.com/photo-1584727638096-042c45049ebe?auto=format&fit=crop&w=300&q=80'),
         ],
       ),
     );
   }
 
-  Widget _buildProductCard(String title, String price, Color imagePlaceholderColor) {
+  Widget _buildProductCard(String title, String price, String imageUrl) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), spreadRadius: 1, blurRadius: 8, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), spreadRadius: 1, blurRadius: 10, offset: const Offset(0, 4))],
       ),
       padding: const EdgeInsets.all(16.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(color: AppColors.primaryGreen, borderRadius: BorderRadius.circular(12)),
                   child: const Text('TERLARIS', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 12),
                 Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark, height: 1.2)),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     const Icon(Icons.payments_outlined, color: AppColors.primaryGreen, size: 18),
@@ -298,12 +307,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {},
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC8F0CC), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), padding: const EdgeInsets.symmetric(vertical: 12)),
-                        child: const Text('Detail', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC8F0CC), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), padding: const EdgeInsets.symmetric(vertical: 12)),
+                        child: const Text('Detail', style: TextStyle(color: Color(0xFF4A4A4A), fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primaryGreen, width: 2)), child: const Icon(Icons.check, color: AppColors.primaryGreen, size: 16)),
+                    Container(padding: const EdgeInsets.all(3), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.primaryGreen, width: 2)), child: const Icon(Icons.check, color: AppColors.primaryGreen, size: 18)),
                   ],
                 ),
               ],
@@ -311,9 +320,23 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
           const SizedBox(width: 16),
           Container(
-            width: 130, height: 150,
-            decoration: BoxDecoration(color: imagePlaceholderColor, borderRadius: const BorderRadius.only(topRight: Radius.circular(24), bottomRight: Radius.circular(24), topLeft: Radius.circular(80), bottomLeft: Radius.circular(80))),
-            child: const Center(child: Icon(Icons.image, size: 40, color: Colors.white70)),
+            width: 130, height: 130,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.08), spreadRadius: 1, blurRadius: 4, offset: const Offset(0, 2))
+              ],
+            ),
+            child: ClipOval(
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.image, size: 40, color: Colors.white70),
+                ),
+              ),
+            ),
           ),
         ],
       ),
