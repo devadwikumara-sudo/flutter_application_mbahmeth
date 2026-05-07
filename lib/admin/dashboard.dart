@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'users_semua.dart';
 import 'package:flutter_application_mbahmeth/admin/admin_crud/presentation/pages/product_list_page.dart';
+=======
+// Import halaman yang sudah kamu buat
+import 'package:flutter_application_mbahmeth/admin/admin_crud/presentation/pages/product_list_page.dart';
+import 'package:flutter_application_mbahmeth/admin/admin_orders/presentation/pages/order_list_page.dart';
 
 // ===== HALAMAN DUMMY =====
 class PesananPage extends StatelessWidget {
@@ -34,6 +38,9 @@ class MyApp extends StatelessWidget {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: AdminDashboard(),
+=======
+      theme: ThemeData(primarySwatch: Colors.green),
+      home: const AdminDashboard(),
     );
   }
 }
@@ -99,6 +106,25 @@ class _AdminDashboardState extends State<AdminDashboard> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
         ),
       ),
+=======
+      backgroundColor: const Color(0xFFF2F2F2),
+      appBar: AppBar(
+        backgroundColor: Colors.green,
+        elevation: 0,
+        title: const Text(
+          "Admin Dashboard",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: CircleAvatar(
+              backgroundColor: Colors.white24,
+              child: Icon(Icons.person_outline, color: Colors.white),
+            ),
+          )
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(14),
         child: Column(
@@ -115,10 +141,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
               child: const Text.rich(
                 TextSpan(
                   text: "Selamat datang,\n",
+                  style: TextStyle(fontSize: 16),
                   children: [
                     TextSpan(
                       text: "Admin Mbah Met",
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                     )
                   ],
                 ),
@@ -128,6 +156,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             const SizedBox(height: 20),
 
             const Text("Dashboard", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+=======
+            const Text("Statistik Toko", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
 
             // ===== GRID =====
@@ -147,13 +177,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
 
             const SizedBox(height: 20),
-
             const Text("Menu cepat", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 14),
 
             // ===== MENU =====
             GestureDetector(
               onTap: () => setState(() => currentIndex = 2),
+            const Text("Menu Cepat", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 14),
+
+            // NAVIGASI: KELOLA PENGGUNA
+            InkWell(
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const UsersSemua()));
+              },
               child: const MenuCard(
                 title: "Kelola Pengguna",
                 subtitle: "Lihat dan edit akun pengguna",
@@ -162,11 +199,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 iconBgColor: Colors.white,
               ),
             ),
-
             const SizedBox(height: 12),
 
             GestureDetector(
               onTap: () => setState(() => currentIndex = 3),
+            // NAVIGASI: KELOLA PRODUK (CRUD)
+            InkWell(
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductListPage()));
+              },
               child: const MenuCard(
                 title: "Kelola Produk",
                 subtitle: "Tambah, edit, atau hapus produk",
@@ -174,6 +215,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 color: Colors.green,
                 textWhite: true,
                 iconBgColor: Colors.white24,
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // NAVIGASI: KELOLA PESANAN (ORDER LIST)
+            InkWell(
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const OrderListPage()));
+              },
+              child: const MenuCard(
+                title: "Kelola Pesanan",
+                subtitle: "Memproses pesanan pelanggan",
+                icon: Icons.receipt_long_outlined,
+                color: Colors.white,
               ),
             ),
 
@@ -231,6 +286,34 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         ),
       ),
+=======
+
+      // BOTTOM NAVBAR SINKRONISASI
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 0,
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.grey,
+        backgroundColor: Colors.white,
+        type: BottomNavigationBarType.fixed,
+        onTap: (index) {
+          if (index == 1) { // Icon List Alt -> Ke Order List
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const OrderListPage()));
+          } else if (index == 2) { // Icon Edit -> Ke CRUD Produk
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductListPage()));
+          } else if (index == 3) { // Icon Inventory -> Ke CRUD Produk
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ProductListPage()));
+          } else if (index == 4) { // Icon Person -> Ke Users
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const UsersSemua()));
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: "Beranda"),
+          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "Pesanan"),
+          BottomNavigationBarItem(icon: Icon(Icons.edit), label: "Edit"),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), label: "Produk"),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: "Akun"),
+        ],
+      ),
     );
   }
 }
@@ -241,6 +324,10 @@ class InfoCard extends StatelessWidget {
   final IconData icon;
 
   const InfoCard(this.title, this.value, this.icon, this.percentage, {super.key});
+// Widget Pendukung
+class InfoCard extends StatelessWidget {
+  final String title, value;
+  const InfoCard(this.title, this.value, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -266,6 +353,15 @@ class InfoCard extends StatelessWidget {
               Text(percentage, style: const TextStyle(fontSize: 10)),
             ],
           ),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(14)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 12, color: Colors.green)),
+          const SizedBox(height: 8),
+          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -292,19 +388,16 @@ class MenuCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textColor = textWhite ? Colors.white : Colors.black;
-
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: iconBgColor,
-            child: Icon(icon, color: textWhite ? Colors.white : Colors.green),
-          ),
+          CircleAvatar(backgroundColor: textWhite ? Colors.white24 : Colors.green.shade50, child: Icon(icon, color: textWhite ? Colors.white : Colors.green)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -312,6 +405,7 @@ class MenuCard extends StatelessWidget {
               children: [
                 Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
                 Text(subtitle, style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 11)),
+                Text(subtitle, style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 12)),
               ],
             ),
           ),
