@@ -69,7 +69,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
             itemCount: products.length,
             itemBuilder: (context, index) {
               final item = products[index];
-              final int stok = int.parse(item['stok'].toString());
+              final int stok = int.tryParse(item['stok']?.toString() ?? '0') ?? 0;
 
               return GestureDetector(
                 onTap: () {
@@ -94,7 +94,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
                           image: DecorationImage(
                             // Mengambil gambar dari folder assets di Laragon
-                            image: NetworkImage('$imageUrl${item['gambar']}'),
+                            image: NetworkImage('$imageUrl${item['gambar_produk'] ?? item['gambar'] ?? ''}'),
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -106,7 +106,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item['nama_produk'] ?? item['nama'], // Sesuaikan nama kolom DB
+                            (item['nama_produk'] ?? item['nama'] ?? 'Tanpa Nama').toString(), // Sesuaikan nama kolom DB
                             style: const TextStyle(fontWeight: FontWeight.bold),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,

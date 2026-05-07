@@ -20,74 +20,97 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
+  bool _isLoading = false; // Untuk indikator loading
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
- // Ganti fungsi lama di customer_login.dart dengan ini
-void _handleLogin() async {
-  String email = _emailController.text;
-  String password = _passwordController.text; // Pastikan controller password sudah ada
+  // Fungsi yang dipanggil saat tombol Masuk ditekan
+  void _handleLogin() async {
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
 
-  if (email.isEmpty || password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Email dan Password harus diisi')),
-    );
-    return;
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email dan Password harus diisi')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    await loginUser(email, password);
+    if (mounted) setState(() => _isLoading = false);
   }
 
-  // Panggil fungsi API login
-  await loginUser(email, password);
-}
-Future<void> loginUser(String email, String password) async {
-  try {
-    final response = await http.post(
-      // Ganti IP_LAPTOP dengan IP asli dari cmd (ipconfig)
-      Uri.parse("http://192.168.0.51/toko_mbahmeth/api/login.php"),
-      body: {"email": email, "password": password},
-    );
+  // Fungsi API Login dengan Error Handling Lengkap
+  Future<void> loginUser(String email, String password) async {
+    try {
+      debugPrint("Mencoba koneksi ke: http://172.16.103.184/toko_mbahmeth/api/login.php");
 
-    var data = json.decode(response.body);
+      final response = await http.post(
+        Uri.parse("http://172.16.103.184/toko_mbahmeth/api/login.php"),
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: {
+          "email": email,
+          "password": password
+        },
+      ).timeout(const Duration(seconds: 10)); // Timeout jika server lambat
 
-    if (data['status'] == "success") {
-      if (!mounted) return;
-      // Jika berhasil, arahkan ke SuccessScreen (Source 5)
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SuccessScreen(
-            title: 'Masuk Berhasil',
-            subtitle: 'Selamat Datang, ${data['user']['nama']}',
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const CustomerHomeScreen()),
-                (Route<dynamic> route) => false,
-              );
-            },
+      debugPrint("Status Code: ${response.statusCode}");
+      debugPrint("Data Server: ${response.body}");
+
+      if (response.body.isEmpty) {
+        throw Exception("Server memberikan respon kosong.");
+      }
+
+      var data = json.decode(response.body);
+
+      if (data['status'] == "success") {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SuccessScreen(
+              title: 'Masuk Berhasil',
+              subtitle: 'Selamat Datang, ${data['user']['nama']}',
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CustomerHomeScreen()),
+                  (Route<dynamic> route) => false,
+                );
+              },
+            ),
           ),
-        ),
-      );
-    } else {
-      if (!mounted) return;
-      // Jika gagal (email/password salah), arahkan ke FailureScreen (Source 5)
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => FailureScreen(
-            title: data['message'] ?? 'Masuk Gagal',
-            onPressed: () => Navigator.pop(context),
+        );
+      } else {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FailureScreen(
+              title: data['message'] ?? 'Masuk Gagal',
+              onPressed: () => Navigator.pop(context),
+            ),
           ),
+        );
+      }
+    } catch (e) {
+      // Detail error akan muncul di DEBUG CONSOLE (Ctrl + Shift + Y)
+      debugPrint("--- DETAIL ERROR LOGIN ---");
+      debugPrint(e.toString());
+      debugPrint("---------------------------");
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal terhubung: ${e.toString()}'),
+          backgroundColor: Colors.red,
         ),
       );
     }
-  } catch (e) {
-    debugPrint("Error: $e");
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Gagal terhubung ke server Laragon')),
-    );
   }
-}
 
   @override
   void dispose() {
@@ -114,18 +137,14 @@ Future<void> loginUser(String email, String password) async {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 20),
-            // Logo Placeholder
-            const SizedBox(height: 20),
-            // === BAGIAN YANG DIRUBAH ===
             Center(
               child: Image.asset(
-                'assets/images/logo.png', // Menggunakan gambar logo langsung
-                width: 200, // Ukuran disesuaikan agar pas di layar
+                'assets/images/logo.png',
+                width: 200,
                 height: 200,
                 fit: BoxFit.contain,
               ),
             ),
-            // Teks "TOKO MBAHMETH" dihapus karena sudah ada di dalam gambar logo
             const SizedBox(height: 40),
             
             // Tab Toggle
@@ -137,38 +156,25 @@ Future<void> loginUser(String email, String password) async {
               child: Row(
                 children: [
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () {}, // Already on user tab
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.person_outline,
-                              color: Colors.white,
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              'Masuk Pengguna',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person_outline, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text('Masuk Pengguna', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ],
                       ),
                     ),
                   ),
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        // Navigate to Admin Login Screen
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
@@ -176,25 +182,12 @@ Future<void> loginUser(String email, String password) async {
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.admin_panel_settings_outlined,
-                              color: AppColors.textDark,
-                            ),
+                            Icon(Icons.admin_panel_settings_outlined, color: AppColors.textDark),
                             SizedBox(width: 8),
-                            Text(
-                              'Masuk Admin',
-                              style: TextStyle(
-                                color: AppColors.textDark,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            Text('Masuk Admin', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -205,19 +198,15 @@ Future<void> loginUser(String email, String password) async {
             ),
             
             const SizedBox(height: 32),
-            
-            // Email Field
             const Text('Email', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
             const SizedBox(height: 8),
             CustomTextField(
               controller: _emailController,
-              hintText: 'Masukkan email atau Nama Pengguna (ketik "user")',
+              hintText: 'Masukkan email',
               prefixIcon: Icons.email_outlined,
             ),
             
             const SizedBox(height: 20),
-            
-            // Password Field
             const Text('Kata Sandi', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
             const SizedBox(height: 8),
             CustomTextField(
@@ -238,73 +227,47 @@ Future<void> loginUser(String email, String password) async {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
-                  );
-                },
-                child: const Text(
-                  'Lupa Kata Sandi?',
-                  style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w600),
-                ),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordScreen())),
+                child: const Text('Lupa Kata Sandi?', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w600)),
               ),
             ),
             
             const SizedBox(height: 16),
             
-            // Login Button
-            PrimaryButton(
-              text: 'Masuk',
-              onPressed: _handleLogin,
-            ),
+            // Login Button dengan Indikator Loading
+            _isLoading 
+              ? const Center(child: CircularProgressIndicator(color: AppColors.primaryGreen))
+              : PrimaryButton(
+                  text: 'Masuk',
+                  onPressed: _handleLogin,
+                ),
             
             const SizedBox(height: 24),
             const Center(child: Text('atau', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w500))),
             const SizedBox(height: 24),
             
-            // Google Login Button
+            // Google Button
             SizedBox(
               height: 56,
               child: OutlinedButton.icon(
-                onPressed: () {
-                  // Google login action
-                },
-                icon: const Icon(Icons.g_mobiledata, size: 36, color: AppColors.primaryGreen), // Placeholder for Google Icon
-                label: const Text(
-                  'Google',
-                  style: TextStyle(color: AppColors.primaryGreen, fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                onPressed: () {},
+                icon: const Icon(Icons.g_mobiledata, size: 36, color: AppColors.primaryGreen),
+                label: const Text('Google', style: TextStyle(color: AppColors.primaryGreen, fontSize: 16, fontWeight: FontWeight.bold)),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.primaryGreen),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                 ),
               ),
             ),
             
             const SizedBox(height: 32),
-            
-            // Register Link
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text('Belum punya akun? ', style: TextStyle(color: AppColors.textDark)),
                 GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                    );
-                  },
-                  child: const Text(
-                    'Daftar',
-                    style: TextStyle(
-                      color: AppColors.textDark,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen())),
+                  child: const Text('Daftar', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
