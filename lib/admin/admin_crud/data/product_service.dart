@@ -7,7 +7,7 @@ import '../models/product_model.dart';
 
 class ProductService {
   // Alamat API 
-  final String _baseUrl = "http://172.16.115.171/api_pertanian/produk";
+  final String _baseUrl = "http://172.16.115.174/api_pertanian/produk";
 
   // --- 1. TAMBAH PRODUK ---
   Future<bool> addProduct(ProductModel product, XFile? imageFile) async {

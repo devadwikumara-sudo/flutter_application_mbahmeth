@@ -17,7 +17,7 @@ class _ProductListPageState extends State<ProductListPage>
     with SingleTickerProviderStateMixin {
   final ProductService _productService = ProductService();
   //ganti ip setiap ganti wifi
-  final String imageServerBase = "http://172.16.115.171/api_pertanian/uploads/";
+  final String imageServerBase = "http://172.16.115.174/api_pertanian/uploads/";
 
   // Kontrol untuk Search & Filter
   List<ProductModel> _allProducts = [];
