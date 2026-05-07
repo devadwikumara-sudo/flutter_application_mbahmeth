@@ -1,8 +1,9 @@
 import 'package:crud_filter/features/admin_crud/presentation/pages/product_edit_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_mbahmeth/models/modelsadmin/product_model.dart';
 import '../widgets/product_card.dart';
 import '../../data/product_service.dart';
-import '../../models/product_model.dart';
+import '../../models/modelsadmin/product_model.dart';
 import 'product_create_page.dart';
 
 class ProductListPage extends StatefulWidget {
@@ -16,7 +17,7 @@ class _ProductListPageState extends State<ProductListPage>
     with SingleTickerProviderStateMixin {
   final ProductService _productService = ProductService();
   //ganti ip setiap ganti wifi
-  final String imageServerBase = "http://172.16.103.136/api_pertanian/uploads/";
+  final String imageServerBase = "http://172.16.115.171/api_pertanian/uploads/";
 
   // Kontrol untuk Search & Filter
   List<ProductModel> _allProducts = [];

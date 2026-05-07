@@ -26,7 +26,7 @@ class _ProductEditPageState extends State<ProductEditPage> {
   XFile? _newImageFile; 
   final ImagePicker _picker = ImagePicker();
   //ganti ip setiap ganti wifi
-  final String imageServerBase = "http://172.16.103.136/api_pertanian/uploads/";
+  final String imageServerBase = "http://172.16.115.171/api_pertanian/uploads/";
 
   @override
   void initState() {
