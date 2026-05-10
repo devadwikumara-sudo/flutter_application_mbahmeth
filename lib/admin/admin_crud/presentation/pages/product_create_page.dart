@@ -1,7 +1,7 @@
-import 'package:crud_filter/features/admin_crud/data/product_service.dart';
-import 'package:crud_filter/features/admin_crud/models/product_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_mbahmeth/admin/admin_crud/data/product_service.dart';
+import 'package:flutter_application_mbahmeth/models/modelsadmin/product_model.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProductCreatePage extends StatefulWidget {
   const ProductCreatePage({super.key});

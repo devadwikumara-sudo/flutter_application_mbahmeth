@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/product_service.dart';
-import '../../models/product_model.dart';
-
+import 'package:flutter_application_mbahmeth/models/modelsadmin/product_model.dart';
 class ProductEditPage extends StatefulWidget {
   final ProductModel product;
 

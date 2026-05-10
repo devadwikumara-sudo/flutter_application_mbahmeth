@@ -1,9 +1,8 @@
-import 'package:crud_filter/features/admin_crud/presentation/pages/product_edit_page.dart';
+import 'product_edit_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_mbahmeth/models/modelsadmin/product_model.dart';
-import '../widgets/product_card.dart';
+import '../widgets/widgetsadmin/product_card.dart';
 import '../../data/product_service.dart';
-import '../../models/modelsadmin/product_model.dart';
 import 'product_create_page.dart';
 
 class ProductListPage extends StatefulWidget {

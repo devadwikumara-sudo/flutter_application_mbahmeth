@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'users_semua.dart';
 import 'package:flutter_application_mbahmeth/admin/admin_crud/presentation/pages/product_list_page.dart';
-import 'package:flutter_application_mbahmeth/admin/admin_crud/presentation/pages/product_list_page.dart';
 import 'package:flutter_application_mbahmeth/admin/admin_orders/presentation/pages/order_list_page.dart';
 
 void main() {
@@ -15,7 +14,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: AdminDashboard(),
       theme: ThemeData(primarySwatch: Colors.green),
       home: const AdminDashboard(),
     );
@@ -405,7 +403,7 @@ class MenuCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 5,
           ),
         ],
@@ -436,7 +434,7 @@ class MenuCard extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: textColor.withOpacity(0.7),
+                    color: textColor.withValues(alpha: 0.7),
                     fontSize: 12,
                   ),
                 ),

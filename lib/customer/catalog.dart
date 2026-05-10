@@ -19,8 +19,8 @@ class CatalogScreen extends StatefulWidget {
 
 class _CatalogScreenState extends State<CatalogScreen> {
   // Ganti IP_LAPTOP dengan IP Anda (cek di CMD: ipconfig)
-  final String baseUrl = "http://192.168.1.36/toko_mbahmeth/api";
-  final String imageUrl = "http://192.168.1.36/toko_mbahmeth/assets/images/";
+  final String baseUrl = "http://192.168.1.3/toko_mbahmeth/api";
+  final String imageUrl = "http://192.168.1.3/toko_mbahmeth/assets/images/";
 
   Future<List<dynamic>> fetchProducts() async {
     try {
