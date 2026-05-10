@@ -10,8 +10,8 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> {
   // State untuk melacak pilihan metode pembayaran dan pengiriman
-  String? _paymentMethod = 'Qris'; 
-  String? _deliveryMethod; // Null agar user harus mengklik Ambil Di Toko
+  String _paymentMethod = 'Qris';
+  String? _deliveryMethod; // Null agar user harus mengklik Ambil
 
   @override
   Widget build(BuildContext context) {
