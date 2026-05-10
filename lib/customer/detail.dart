@@ -34,7 +34,7 @@ class _DetailScreenState extends State<DetailScreen> {
           children: [
             // Gambar Produk dari URL Laragon[cite: 1, 3]
             Image.network(
-              "http://192.168.0.51/toko_mbahmeth/assets/images/${widget.product['gambar_produk'] ?? widget.product['gambar'] ?? ''}",
+              "http://192.168.1.36/toko_mbahmeth/assets/images/${widget.product['gambar_produk'] ?? widget.product['gambar'] ?? ''}",
               width: double.infinity,
               height: 300,
               fit: BoxFit.cover,
