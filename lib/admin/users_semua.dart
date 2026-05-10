@@ -54,37 +54,23 @@ class _UsersSemuaState extends State<UsersSemua> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xffF5F5F5),
-
       body: SafeArea(
         child: Column(
           children: [
+            // HEADER
             Container(
               width: double.infinity,
               color: const Color(0xff2E9900),
               padding: const EdgeInsets.all(14),
               child: Row(
-                children: [
-                  InkWell(
-                    onTap: () {
-                      Navigator.pop(context);
-                    },
-                    child: const Icon(
-                      Icons.arrow_back_ios,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  const CircleAvatar(
+                children: const [
+                  CircleAvatar(
                     radius: 22,
                     backgroundColor: Colors.white,
                     child: Icon(Icons.store, color: Colors.green),
                   ),
-
-                  const SizedBox(width: 10),
-
-                  const Column(
+                  SizedBox(width: 10),
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -112,14 +98,12 @@ class _UsersSemuaState extends State<UsersSemua> {
 
             const Text(
               "Kelola Pengguna",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 14),
 
+            // SEARCH
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
@@ -128,8 +112,7 @@ class _UsersSemuaState extends State<UsersSemua> {
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 0),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
@@ -140,6 +123,7 @@ class _UsersSemuaState extends State<UsersSemua> {
 
             const SizedBox(height: 14),
 
+            // TAB
             Row(
               children: [
                 tabButton("Semua", 0),
@@ -147,7 +131,6 @@ class _UsersSemuaState extends State<UsersSemua> {
                 tabButton("Pelanggan", 2),
               ],
             ),
-
             Row(
               children: [
                 tabLine(0),
@@ -158,12 +141,12 @@ class _UsersSemuaState extends State<UsersSemua> {
 
             const SizedBox(height: 5),
 
+            // LIST USER
             Expanded(
               child: ListView.builder(
                 itemCount: filteredUsers.length,
                 itemBuilder: (context, index) {
                   final user = filteredUsers[index];
-
                   return UserTile(
                     name: user["name"],
                     email: user["email"],
@@ -177,47 +160,12 @@ class _UsersSemuaState extends State<UsersSemua> {
           ],
         ),
       ),
-
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2,
-        backgroundColor: const Color(0xff2E9900),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pop(context);
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: "",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt),
-            label: "",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.edit),
-            label: "",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2_outlined),
-            label: "",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: "",
-          ),
-        ],
-      ),
     );
   }
 
+  // TAB BUTTON
   Widget tabButton(String text, int index) {
     final active = selectedTab == index;
-
     return Expanded(
       child: InkWell(
         onTap: () {
@@ -232,8 +180,7 @@ class _UsersSemuaState extends State<UsersSemua> {
               text,
               style: TextStyle(
                 fontSize: 14,
-                fontWeight:
-                    active ? FontWeight.bold : FontWeight.normal,
+                fontWeight: active ? FontWeight.bold : FontWeight.normal,
                 color: active ? Colors.black : Colors.grey,
               ),
             ),
@@ -243,23 +190,21 @@ class _UsersSemuaState extends State<UsersSemua> {
     );
   }
 
+  // TAB LINE
   Widget tabLine(int index) {
     return Expanded(
       child: Container(
         height: 2,
-        color:
-            selectedTab == index ? Colors.green : Colors.transparent,
+        color: selectedTab == index ? Colors.green : Colors.transparent,
       ),
     );
   }
 }
 
+// USER TILE
 class UserTile extends StatelessWidget {
-  final String name;
-  final String email;
-  final String role;
+  final String name, email, role, time;
   final Color roleColor;
-  final String time;
 
   const UserTile({
     super.key,
@@ -274,75 +219,34 @@ class UserTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       tileColor: Colors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-
-      leading: Stack(
+      leading: const CircleAvatar(
+        backgroundColor: Colors.grey,
+        child: Icon(Icons.person, color: Colors.white),
+      ),
+      title: Text(name,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+      subtitle: Text(email, style: const TextStyle(fontSize: 11)),
+      trailing: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircleAvatar(
-            radius: 22,
-            backgroundColor: Colors.grey,
-            child: Icon(Icons.person, color: Colors.white),
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                color: Colors.green,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: roleColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              role.toUpperCase(),
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                color: roleColor,
               ),
             ),
           ),
+          const SizedBox(height: 4),
+          Text(time, style: const TextStyle(fontSize: 9)),
         ],
-      ),
-
-      title: Text(
-        name,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 13,
-        ),
-      ),
-
-      subtitle: Text(
-        email,
-        style: const TextStyle(fontSize: 11),
-      ),
-
-      trailing: SizedBox(
-        width: 95,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
-              decoration: BoxDecoration(
-                color: roleColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                role.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: roleColor,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              time,
-              style: const TextStyle(fontSize: 9),
-            ),
-          ],
-        ),
       ),
     );
   }
