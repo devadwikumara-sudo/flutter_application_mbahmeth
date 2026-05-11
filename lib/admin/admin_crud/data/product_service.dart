@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_application_mbahmeth/models/modelsadmin/product_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import '../models/product_model.dart';
+import '../models/modelsadmin/product_model.dart';
 
 class ProductService {
   // Alamat API 
