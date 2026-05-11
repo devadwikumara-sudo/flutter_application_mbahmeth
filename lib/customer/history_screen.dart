@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'order_card.dart'; // order_card.dart ada di folder screens/ yang sama
+// Sesuaikan import ini karena order_card sudah satu folder di customer
+import 'order_card.dart'; 
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -16,6 +17,7 @@ class HistoryScreen extends StatelessWidget {
           'Riwayat Pesanan',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+        // Pakai leading ini kalau dibuka sebagai halaman mandiri (push)
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),

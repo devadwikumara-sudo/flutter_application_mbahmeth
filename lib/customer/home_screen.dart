@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import '../customer/catalog.dart';
-import '../screens/cart_screen.dart';
-import '../screens/history_screen.dart';
-import '../screens/notification_screen.dart';
+// Import file tetangga di satu folder 'customer'
+import 'cart_screen.dart'; 
+import 'history_screen.dart'; 
+import 'notification_screen.dart'; 
+import 'home_content.dart'; 
+// Import file profile tetap keluar satu folder karena beda folder
 import '../profile/view/edit_profile_screen.dart'; 
 
 class HomeScreen extends StatefulWidget {
@@ -19,11 +21,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBody() {
     switch (_selectedIndex) {
-      case 0: return const _HomeBody();
-      case 1: return const _CartBody();
-      case 2: return const NotificationScreen(); // Mengarah ke file notification_screen.dart
-      case 3: return const _ProfileBody();
-      default: return const _HomeBody();
+      case 0: 
+        return const HomeContent(); 
+      case 1: 
+        // Pastikan di file cart_screen.dart nama class-nya adalah CartContent
+        return const CartContent(); 
+      case 2: 
+        return const NotificationScreen(); 
+      case 3: 
+        return const _ProfileBody();
+      default: 
+        return const HomeContent();
     }
   }
 
@@ -61,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// --- TAB PROFIL (Sesuai Figma) ---
+// --- TAB PROFIL ---
 class _ProfileBody extends StatelessWidget {
   const _ProfileBody();
 
@@ -95,8 +103,8 @@ class _ProfileBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 15),
-          const Text('Pria Solo', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          const Text('Bahlil@gmail.com', style: TextStyle(color: Colors.grey)),
+          const Text('Ammar Tubagus', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const Text('ammar@student.polije.ac.id', style: TextStyle(color: Colors.grey)),
           const SizedBox(height: 30),
 
           _ProfileMenuItem(
@@ -180,7 +188,3 @@ class _ProfileMenuItem extends StatelessWidget {
     );
   }
 }
-
-// --- TAB STUB (Lengkapi sesuai file Anda) ---
-class _HomeBody extends StatelessWidget { const _HomeBody(); @override Widget build(BuildContext context) => const Center(child: Text('Beranda')); }
-class _CartBody extends StatelessWidget { const _CartBody(); @override Widget build(BuildContext context) => const Center(child: Text('Keranjang')); }

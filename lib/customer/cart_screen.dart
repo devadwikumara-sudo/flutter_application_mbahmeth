@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
-// ==================
-// ✅ DIPAKAI DI TAB (TANPA SCAFFOLD)
-// ==================
+// --- KITA PAKAI WARNA LANGSUNG BIAR GAK ERROR IMPORT THEME ---
+const Color primaryGreen = Color(0xFF2E9900);
+
 class CartContent extends StatelessWidget {
   const CartContent({super.key});
 
@@ -11,25 +10,6 @@ class CartContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // HEADER
-        Container(
-          padding: const EdgeInsets.all(16),
-          color: AppColors.primaryGreen,
-          child: const SafeArea(
-            child: Center(
-              child: Text(
-                'Keranjang Belanja',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        // LIST PRODUK
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(20),
@@ -48,8 +28,6 @@ class CartContent extends StatelessWidget {
             ],
           ),
         ),
-
-        // TOTAL + BUTTON
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -72,7 +50,7 @@ class CartContent extends StatelessWidget {
                   Text(
                     'Rp. 200.000',
                     style: TextStyle(
-                      color: AppColors.primaryGreen,
+                      color: primaryGreen,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -88,9 +66,9 @@ class CartContent extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryGreen,
+                    backgroundColor: primaryGreen,
                   ),
-                  child: const Text('Checkout'),
+                  child: const Text('Checkout', style: TextStyle(color: Colors.white)),
                 ),
               ),
             ],
@@ -101,24 +79,23 @@ class CartContent extends StatelessWidget {
   }
 }
 
-// ==================
-// ✅ OPTIONAL (kalau mau Navigator.push)
-// ==================
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Keranjang')),
+      appBar: AppBar(
+        title: const Text('Keranjang', style: TextStyle(color: Colors.white)),
+        backgroundColor: primaryGreen,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: const CartContent(),
     );
   }
 }
 
-// ==================
-// ITEM
-// ==================
 class CartItem extends StatefulWidget {
   final String productName;
   final String price;
@@ -148,28 +125,31 @@ class _CartItemState extends State<CartItem> {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(width: 70, height: 70, color: Colors.grey.shade300),
+        Container(
+          width: 70, 
+          height: 70, 
+          decoration: BoxDecoration(
+            color: Colors.grey.shade300,
+            borderRadius: BorderRadius.circular(10)
+          )
+        ),
         const SizedBox(width: 12),
-
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(widget.productName, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text('Rp. ${widget.price}', style: const TextStyle(color: AppColors.primaryGreen)),
-
+              Text('Rp. ${widget.price}', style: const TextStyle(color: primaryGreen)),
               Row(
                 children: [
                   IconButton(
-                    onPressed: () {
-                      if (_qty > 1) setState(() => _qty--);
-                    },
-                    icon: const Icon(Icons.remove),
+                    onPressed: () { if (_qty > 1) setState(() => _qty--); },
+                    icon: const Icon(Icons.remove_circle_outline, color: primaryGreen),
                   ),
-                  Text(_qty.toString()),
+                  Text(_qty.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
                   IconButton(
                     onPressed: () => setState(() => _qty++),
-                    icon: const Icon(Icons.add),
+                    icon: const Icon(Icons.add_circle_outline, color: primaryGreen),
                   ),
                 ],
               )
