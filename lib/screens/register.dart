@@ -5,6 +5,7 @@ import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
 import 'package:flutter_application_mbahmeth/screens/success_screen.dart';
 import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/custom_text_field.dart';
 import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/primary_button.dart';
+import 'package:flutter_application_mbahmeth/core/config/app_config.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -47,7 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       // Sesuaikan URL dengan IP Laptop Anda (cek ipconfig)[cite: 1]
       final response = await http.post(
-        Uri.parse("http://192.168.1.3/toko_mbahmeth/api/register.php"),
+        Uri.parse("${AppConfig.authBaseUrl}/register.php"),
         body: {
           "nama_lengkap": name,
           "email": email,

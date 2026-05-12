@@ -8,8 +8,11 @@ import 'package:flutter_application_mbahmeth/screens/forgot_password.dart';
 import 'package:flutter_application_mbahmeth/customer/customer.dart';
 import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/custom_text_field.dart';
 import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/primary_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_application_mbahmeth/core/config/app_config.dart';
+import 'package:flutter_application_mbahmeth/screens/welcome_screen.dart'; // ← PASTIKAN IMPORT INI ADA
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,11 +23,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
-  bool _isLoading = false; // Untuk indikator loading
+  bool _isLoading = false;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Fungsi yang dipanggil saat tombol Masuk ditekan
   void _handleLogin() async {
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
@@ -41,43 +43,41 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) setState(() => _isLoading = false);
   }
 
-  // Fungsi API Login dengan Error Handling Lengkap
   Future<void> loginUser(String email, String password) async {
     try {
-      debugPrint("Mencoba koneksi ke: http://192.168.1.3/toko_mbahmeth/api/login.php");
-
       final response = await http.post(
-        Uri.parse("http://192.168.1.3/toko_mbahmeth/api/login.php"),
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: {
-          "email": email,
-          "password": password
-        },
-      ).timeout(const Duration(seconds: 10)); // Timeout jika server lambat
-
-      debugPrint("Status Code: ${response.statusCode}");
-      debugPrint("Data Server: ${response.body}");
+        Uri.parse("${AppConfig.authBaseUrl}/login.php"),
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: {"email": email, "password": password},
+      ).timeout(const Duration(seconds: 10));
 
       if (response.body.isEmpty) {
         throw Exception("Server memberikan respon kosong.");
       }
 
-      var data = json.decode(response.body);
+      final data = json.decode(response.body);
 
       if (data['status'] == "success") {
+        final user = data['user'];
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('id_user', (user['id_user'] as num).toInt());
+        await prefs.setString('nama', user['nama'] ?? '');
+        await prefs.setString('email', user['email'] ?? '');
+        await prefs.setString('role', user['role'] ?? '');
+
         if (!mounted) return;
+
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => SuccessScreen(
               title: 'Masuk Berhasil',
-              subtitle: 'Selamat Datang, ${data['user']['nama']}',
+              subtitle: 'Selamat Datang, ${user['nama']}',
               onPressed: () {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const CustomerHomeScreen()),
+                  MaterialPageRoute(
+                      builder: (context) => const CustomerHomeScreen()),
                   (Route<dynamic> route) => false,
                 );
               },
@@ -97,11 +97,8 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
     } catch (e) {
-      // Detail error akan muncul di DEBUG CONSOLE (Ctrl + Shift + Y)
       debugPrint("--- DETAIL ERROR LOGIN ---");
       debugPrint(e.toString());
-      debugPrint("---------------------------");
-
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -128,7 +125,17 @@ class _LoginScreenState extends State<LoginScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            // PERBAIKAN: Cek apakah bisa kembali, jika tidak bisa arahkan ke Welcome
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+              );
+            }
+          },
         ),
       ),
       body: SingleChildScrollView(
@@ -146,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 40),
-            
+
             // Tab Toggle
             Container(
               decoration: BoxDecoration(
@@ -167,7 +174,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         children: [
                           Icon(Icons.person_outline, color: Colors.white),
                           SizedBox(width: 8),
-                          Text('Masuk Pengguna', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          Text('Masuk Pengguna',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -177,7 +187,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       onTap: () {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const AdminLoginScreen()),
                         );
                       },
                       child: Container(
@@ -185,9 +196,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.admin_panel_settings_outlined, color: AppColors.textDark),
+                            Icon(Icons.admin_panel_settings_outlined,
+                                color: AppColors.textDark),
                             SizedBox(width: 8),
-                            Text('Masuk Admin', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold)),
+                            Text('Masuk Admin',
+                                style: TextStyle(
+                                    color: AppColors.textDark,
+                                    fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -196,18 +211,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            const Text('Email', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
+            const Text('Email',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: AppColors.textDark)),
             const SizedBox(height: 8),
             CustomTextField(
               controller: _emailController,
               hintText: 'Masukkan email',
               prefixIcon: Icons.email_outlined,
             ),
-            
+
             const SizedBox(height: 20),
-            const Text('Kata Sandi', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
+            const Text('Kata Sandi',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold, color: AppColors.textDark)),
             const SizedBox(height: 8),
             CustomTextField(
               controller: _passwordController,
@@ -216,58 +235,84 @@ class _LoginScreenState extends State<LoginScreen> {
               prefixIcon: Icons.lock_outline,
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: AppColors.textLight,
                 ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () =>
+                    setState(() => _obscurePassword = !_obscurePassword),
               ),
             ),
-            
+
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordScreen())),
-                child: const Text('Lupa Kata Sandi?', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w600)),
+                onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const ForgotPasswordScreen())),
+                child: const Text('Lupa Kata Sandi?',
+                    style: TextStyle(
+                        color: AppColors.textDark,
+                        fontWeight: FontWeight.w600)),
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
-            // Login Button dengan Indikator Loading
-            _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: AppColors.primaryGreen))
-              : PrimaryButton(
-                  text: 'Masuk',
-                  onPressed: _handleLogin,
-                ),
-            
+
+            _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                        color: AppColors.primaryGreen))
+                : PrimaryButton(
+                    text: 'Masuk',
+                    onPressed: _handleLogin,
+                  ),
+
             const SizedBox(height: 24),
-            const Center(child: Text('atau', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w500))),
+            const Center(
+                child: Text('atau',
+                    style: TextStyle(
+                        color: AppColors.textDark,
+                        fontWeight: FontWeight.w500))),
             const SizedBox(height: 24),
-            
-            // Google Button
+
             SizedBox(
               height: 56,
               child: OutlinedButton.icon(
                 onPressed: () {},
-                icon: const Icon(Icons.g_mobiledata, size: 36, color: AppColors.primaryGreen),
-                label: const Text('Google', style: TextStyle(color: AppColors.primaryGreen, fontSize: 16, fontWeight: FontWeight.bold)),
+                icon: const Icon(Icons.g_mobiledata,
+                    size: 36, color: AppColors.primaryGreen),
+                label: const Text('Google',
+                    style: TextStyle(
+                        color: AppColors.primaryGreen,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold)),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.primaryGreen),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Belum punya akun? ', style: TextStyle(color: AppColors.textDark)),
+                const Text('Belum punya akun? ',
+                    style: TextStyle(color: AppColors.textDark)),
                 GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen())),
-                  child: const Text('Daftar', style: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold)),
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const RegisterScreen())),
+                  child: const Text('Daftar',
+                      style: TextStyle(
+                          color: AppColors.textDark,
+                          fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
