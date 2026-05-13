@@ -48,7 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       // Sesuaikan URL dengan IP Laptop Anda (cek ipconfig)[cite: 1]
       final response = await http.post(
-        Uri.parse("${AppConfig.authBaseUrl}/register.php"),
+        Uri.parse("${AppConfig.customerUrl}/register.php"),
         body: {
           "nama_lengkap": name,
           "email": email,

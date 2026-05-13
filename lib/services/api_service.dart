@@ -1,22 +1,22 @@
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import '../models/modelsadmin/product_model.dart';
+import 'package:flutter_application_mbahmeth/core/config/app_config.dart';
+import '../models/modelsadmin/product_model.dart'; 
 import '../models/modelsadmin/order_model.dart';
 
-class ApiService {
-  // Gunakan localhost untuk testing di Chrome Web
-  static const String baseUrl = "http://localhost/TOKO_MBAHMETH/api";
 
-  // ===================== BAGIAN AUTH & CUSTOMER =====================
+class ApiService {
+  static const String adminUrl = "${AppConfig.baseUrl}/admin";
+  static const String customerUrl = "${AppConfig.baseUrl}/customer";
+  static const String imageUrl = AppConfig.imageServerUrl;
 
   // ── 1. Login ──────────────────────────────────────────────────────────────
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/login.php"),
+        Uri.parse("$customerUrl/login.php"),
         body: {'email': email, 'password': password},
       );
       if (response.statusCode == 200) return json.decode(response.body);
@@ -30,7 +30,7 @@ class ApiService {
   Future<List<dynamic>> getProducts(int idCategory) async {
     try {
       final response = await http.get(
-        Uri.parse("$baseUrl/get_products.php?id_category=$idCategory"),
+        Uri.parse("$customerUrl/get_products.php?id_category=$idCategory"),
       );
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -49,7 +49,7 @@ class ApiService {
   Future<List<dynamic>> getFeaturedProducts() async {
     try {
       final response = await http.get(
-        Uri.parse("$baseUrl/get_featured_products.php"),
+        Uri.parse("$customerUrl/get_featured_products.php"),
       );
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -72,7 +72,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/add_to_cart.php"),
+        Uri.parse("$customerUrl/add_to_cart.php"),
         body: {
           'id_user': userId.toString(),
           'id_product': productId.toString(),
@@ -84,17 +84,17 @@ class ApiService {
         return json.decode(response.body);
       }
       return {'status': 'error', 'message': 'Server error'};
-
     } catch (e) {
       debugPrint("Error addToCart: $e");
       return {'status': 'error', 'message': e.toString()};
     }
   }
+
   // ── 5. Ambil Isi Keranjang ────────────────────────────────────────────────
   Future<Map<String, dynamic>> getCart(int userId) async {
     try {
       final response = await http.get(
-        Uri.parse("$baseUrl/get_cart.php?id_user=$userId"),
+        Uri.parse("$customerUrl/get_cart.php?id_user=$userId"),
       );
       if (response.statusCode == 200) {
         return json.decode(response.body);
@@ -112,7 +112,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/update_cart_item.php"),
+        Uri.parse("$customerUrl/update_cart_item.php"),
         body: {
           'id_detail': idDetail.toString(),
           'jumlah': jumlah.toString(),
@@ -133,7 +133,7 @@ class ApiService {
   Future<bool> deleteCartItem(int idDetail) async {
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/delete_cart_item.php"),
+        Uri.parse("$customerUrl/delete_cart_item.php"),
         body: {'id_detail': idDetail.toString()},
       );
       if (response.statusCode == 200) {
@@ -155,7 +155,7 @@ class ApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/checkout.php"),
+        Uri.parse("$customerUrl/checkout.php"),
         body: {
           'id_order': idOrder.toString(),
           'metode_pembayaran': metodePembayaran,
@@ -177,7 +177,7 @@ class ApiService {
   Future<List<dynamic>> getHistory(int userId) async {
     try {
       final response = await http.get(
-        Uri.parse("$baseUrl/get_history.php?id_user=$userId"),
+        Uri.parse("$customerUrl/get_history.php?id_user=$userId"),
       );
       if (response.statusCode == 200) return json.decode(response.body);
       return [];
@@ -191,7 +191,7 @@ class ApiService {
     try {
       // Pastikan file php ini tersedia di backend Anda
       final response = await http.get(
-        Uri.parse("$baseUrl/get_orders_by_user.php?id_user=$userId"),
+        Uri.parse("$customerUrl/get_orders_by_user.php?id_user=$userId"),
       );
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
@@ -204,13 +204,12 @@ class ApiService {
       throw Exception('Gagal mengambil data pesanan: $e');
     }
   }
-
-  // ===================== BAGIAN ADMIN (PRODUK) =====================
+ // ===================== BAGIAN ADMIN (PRODUK) =====================
 
   // Ambil semua produk (Gunakan ini di ProductListPage)
   Future<List<ProductModel>> getAdminProducts() async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/produk/read.php"));
+      final response = await http.get(Uri.parse("$adminUrl/produk/read.php"));
       
       print("Fetch Produk Status: ${response.statusCode}");
       
@@ -230,7 +229,7 @@ class ApiService {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse("$baseUrl/produk/create.php"),
+        Uri.parse("$adminUrl/produk/create.php"),
       );
       
       // Nama field ini harus sama dengan $_POST di PHP
@@ -272,7 +271,7 @@ class ApiService {
   try {
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse("$baseUrl/produk/update.php"), // Pastikan ke update.php
+      Uri.parse("$adminUrl/produk/update.php"), // Pastikan ke update.php
     );
 
     // Kirim ID agar database tahu mana yang mau di-update
@@ -301,7 +300,7 @@ class ApiService {
 Future<bool> deleteProduct(String idProduct) async {
   try {
     final response = await http.post(
-      Uri.parse("$baseUrl/produk/delete.php"),
+      Uri.parse("$adminUrl/produk/delete.php"),
       body: {'id_product': idProduct},
     );
 
@@ -319,7 +318,7 @@ Future<bool> deleteProduct(String idProduct) async {
 
   Future<List<OrderModel>> getOrders() async {
     try {
-      final response = await http.get(Uri.parse("$baseUrl/orders/read.php"));
+      final response = await http.get(Uri.parse("$adminUrl/orders/read.php"));
       
       if (response.statusCode == 200) {
         List jsonResponse = json.decode(response.body);
@@ -337,7 +336,7 @@ Future<List<OrderModel>> getOrdersByStatus(String status) async {
   try {
     // Kita arahkan ke read_orders.php dengan parameter status
     final response = await http.get(
-      Uri.parse("$baseUrl/read_orders.php?status=$status"),
+      Uri.parse("$adminUrl/read_orders.php?status=$status"),
     );
 
     print("Fetch Filter Status: ${response.statusCode}");

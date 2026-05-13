@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> loginUser(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse("${AppConfig.authBaseUrl}/login.php"),
+        Uri.parse("${AppConfig.customerUrl}/login.php"),
         headers: {"Content-Type": "application/x-www-form-urlencoded"},
         body: {"email": email, "password": password},
       ).timeout(const Duration(seconds: 10));

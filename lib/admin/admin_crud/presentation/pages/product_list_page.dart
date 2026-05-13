@@ -17,8 +17,14 @@ class _ProductListPageState extends State<ProductListPage>
   final ApiService _service = ApiService();
 
   // Base URL untuk gambar (sesuaikan dengan folder di XAMPP)
-  final String imageServerBase =
-      "http://localhost/TOKO_MBAHMETH/public/assets/products/";
+ Image.network(
+  '${ApiService.imageUrl}${item['gambar_produk'] ?? ''}',
+  fit: BoxFit.cover,
+  errorBuilder: (context, error, stackTrace) {
+    // Munculkan icon jika gambar gagal dimuat (link salah atau file tidak ada)
+    return const Icon(Icons.broken_image, size: 50);
+  },
+)
 
   List<ProductModel> _allProducts = [];
   List<ProductModel> _filteredProducts = [];
