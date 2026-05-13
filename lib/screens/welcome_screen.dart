@@ -29,9 +29,9 @@ class WelcomeScreen extends StatelessWidget {
                 const Spacer(),
                 // 2. Menampilkan Logo langsung tanpa lingkaran hijau dan tanpa teks di bawahnya
                 Image.asset(
-                  'assets/images/logo.png',
-                  width: 200, // Ukuran disesuaikan agar terlihat proporsional
-                  height: 200,
+                  'assets/images/x1.png',
+                  width: 500, // Ukuran disesuaikan agar terlihat proporsional
+                  height: 300,
                 ),
                 const Spacer(),
                 // 3. Teks kembali ke Style asli Anda (Warna, Ukuran, dan Jarak tetap sama)

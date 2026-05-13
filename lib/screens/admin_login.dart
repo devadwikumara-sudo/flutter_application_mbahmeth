@@ -95,9 +95,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               child: Column(
                 children: [
                   Image.asset(
-                    'assets/images/logo.png',
-                    width: 180,
-                    height: 180,
+                    'assets/images/x1.png',
+                    width: 200,
+                    height: 200,
                     fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 24),
