@@ -1,7 +1,9 @@
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart'; // Untuk kIsWeb
 import 'package:flutter/material.dart';
-import 'package:flutter_application_mbahmeth/admin/admin_crud/data/product_service.dart';
-import 'package:flutter_application_mbahmeth/models/modelsadmin/product_model.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_application_mbahmeth/models/modelsadmin/product_model.dart';
+import 'package:flutter_application_mbahmeth/services/api_service.dart';
 
 class ProductCreatePage extends StatefulWidget {
   const ProductCreatePage({super.key});
@@ -16,36 +18,53 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
   // Controller untuk input teks
   final _nameController = TextEditingController();
   final _priceController = TextEditingController();
-  final _stockController = TextEditingController(); 
+  final _stockController = TextEditingController();
   final _descController = TextEditingController();
-  
+
   String? _selectedCategory;
-  
-  // Variabel untuk menampung file gambar yang dipilih
-  XFile? _selectedImage; 
+  XFile? _selectedImage;
+  Uint8List? _webImage; // Khusus preview di Flutter Web
   final ImagePicker _picker = ImagePicker();
 
-  //  Membuka File Explorer untuk pilih gambar
+  // Membuka File Explorer/Gallery
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery, // Membuka folder di laptop/PC
+      source: ImageSource.gallery,
     );
 
     if (image != null) {
-      setState(() {
-        _selectedImage = image;
-      });
+      if (kIsWeb) {
+        // Baca bytes agar bisa tampil di browser
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _webImage = bytes;
+          _selectedImage = image;
+        });
+      } else {
+        setState(() {
+          _selectedImage = image;
+        });
+      }
     }
   }
 
   void _saveData() async {
-    // Validasi: Pastikan field penting dan GAMBAR sudah dipilih
-    if (_nameController.text.isEmpty || _priceController.text.isEmpty || _selectedImage == null) {
+    // Validasi input
+    if (_nameController.text.isEmpty ||
+        _priceController.text.isEmpty ||
+        _selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Nama, Harga, dan Foto wajib diisi!")),
       );
       return;
     }
+
+    // Tampilkan Loading Overlay
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
 
     // 1. Bungkus data ke dalam Model
     final newProduct = ProductModel(
@@ -54,24 +73,30 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
       stock: int.tryParse(_stockController.text) ?? 0,
       description: _descController.text,
       category: _selectedCategory,
-      imagePath: _selectedImage!.name, // Mengambil nama asli file (misal: pupuk.jpg)
+      imagePath: _selectedImage!.name, 
     );
 
-    // 2. Kirim data dan file ke ProductService
-    // Pastikan kamu sudah mengupdate fungsi addProduct di product_service.dart
-    bool success = await ProductService().addProduct(newProduct, _selectedImage);
+    // 2. Kirim ke ApiService
+    bool success = await ApiService().addProduct(
+      newProduct,
+      _selectedImage,
+    );
+
+    if (mounted) Navigator.pop(context); // Tutup loading
 
     if (success) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Produk Berhasil Ditambah!")),
         );
-        Navigator.pop(context); 
+        Navigator.pop(context, true); // Kembali ke list & refresh
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Gagal menyimpan ke database!")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Gagal menyimpan ke database!")),
+        );
+      }
     }
   }
 
@@ -81,8 +106,11 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: primaryGreen,
-        title: const Text('Tambah Produk Baru', 
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        elevation: 0,
+        title: const Text(
+          'Tambah Produk Baru',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -95,42 +123,39 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
           children: [
             _buildLabel("Foto Produk"),
             const SizedBox(height: 8),
-            
+
             // AREA PILIH FOTO
             GestureDetector(
-              onTap: _pickImage, // Klik untuk pilih file beneran
+              onTap: _pickImage,
               child: Container(
                 width: double.infinity,
-                height: 180,
+                height: 200,
                 decoration: BoxDecoration(
-                  color: primaryGreen.withOpacity(0.05),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: primaryGreen.withOpacity(0.1)),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
-                child: _selectedImage == null 
-                  ? Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add_a_photo_outlined, color: primaryGreen, size: 40),
-                        const SizedBox(height: 8),
-                        Text("Tap untuk unggah foto", 
-                          style: TextStyle(color: primaryGreen, fontWeight: FontWeight.bold)),
-                        const Text("Format: JPG/PNG (Max 2MB)", style: TextStyle(fontSize: 10, color: Colors.grey)),
-                      ],
-                    )
-                  : ClipRRect(
-                      borderRadius: BorderRadius.circular(15),
-                      child: Image.network( // Preview gambar di Web
-                        _selectedImage!.path,
-                        fit: BoxFit.cover,
+                child: _selectedImage == null
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_a_photo_outlined, color: primaryGreen, size: 40),
+                          const SizedBox(height: 8),
+                          Text("Pilih Gambar", style: TextStyle(color: primaryGreen)),
+                        ],
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: kIsWeb
+                            ? Image.memory(_webImage!, fit: BoxFit.cover)
+                            : Image.network(_selectedImage!.path, fit: BoxFit.cover),
                       ),
-                    ),
               ),
             ),
 
             const SizedBox(height: 20),
             _buildLabel("Nama Produk"),
-            _buildTextField("Contoh: Pupuk Organik Cair", _nameController),
+            _buildTextField("Masukkan nama produk", _nameController),
 
             const SizedBox(height: 20),
             Row(
@@ -163,20 +188,26 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
 
             const SizedBox(height: 20),
             _buildLabel("Deskripsi Produk"),
-            _buildTextField("Jelaskan detail produk...", _descController, maxLines: 4),
+            _buildTextField(
+              "Jelaskan detail produk...",
+              _descController,
+              maxLines: 4,
+            ),
 
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 55,
               child: ElevatedButton.icon(
                 onPressed: _saveData,
-                icon: const Icon(Icons.save_outlined, color: Colors.white),
-                label: const Text('Simpan Produk', 
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                icon: const Icon(Icons.save, color: Colors.white),
+                label: const Text(
+                  'SIMPAN PRODUK',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ),
@@ -186,11 +217,12 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
     );
   }
 
-  // --- WIDGET HELPER ---
+  // --- WIDGET HELPERS ---
+
   Widget _buildLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 13)),
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
     );
   }
 
@@ -203,15 +235,27 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
         hintText: hint,
         filled: true,
         fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
       ),
     );
   }
 
   Widget _buildDropdownField(String hint) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade300)),
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCategory,
