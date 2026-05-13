@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import '../../data/product_service.dart';
 import 'package:flutter_application_mbahmeth/models/modelsadmin/product_model.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter_application_mbahmeth/services/api_service.dart';
+
 class ProductEditPage extends StatefulWidget {
   final ProductModel product;
 
@@ -13,7 +14,7 @@ class ProductEditPage extends StatefulWidget {
 
 class _ProductEditPageState extends State<ProductEditPage> {
   final Color primaryGreen = const Color(0xFF2E9900);
-  
+
   // Controller untuk input teks
   late TextEditingController nameController;
   late TextEditingController priceController;
@@ -22,18 +23,23 @@ class _ProductEditPageState extends State<ProductEditPage> {
   late TextEditingController descController;
 
   // Variabel untuk menangani perubahan foto
-  XFile? _newImageFile; 
+  XFile? _newImageFile;
   final ImagePicker _picker = ImagePicker();
-  //ganti ip setiap ganti wifi
-  final String imageServerBase = "http://172.16.115.174/api_pertanian/uploads/";
+  //ip
+  final String imageServerBase =
+      "http://localhost/TOKO_MBAHMETH/api/public/assets/products/";
 
   @override
   void initState() {
     super.initState();
     // Mengisi data awal dari objek product yang dikirim
     nameController = TextEditingController(text: widget.product.name);
-    priceController = TextEditingController(text: widget.product.price.toString());
-    stockController = TextEditingController(text: widget.product.stock.toString());
+    priceController = TextEditingController(
+      text: widget.product.price.toString(),
+    );
+    stockController = TextEditingController(
+      text: widget.product.stock.toString(),
+    );
     categoryController = TextEditingController(text: widget.product.category);
     descController = TextEditingController(text: widget.product.description);
   }
@@ -55,8 +61,10 @@ class _ProductEditPageState extends State<ProductEditPage> {
       appBar: AppBar(
         backgroundColor: primaryGreen,
         elevation: 0,
-        title: const Text('Edit Produk', 
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Edit Produk',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -83,23 +91,34 @@ class _ProductEditPageState extends State<ProductEditPage> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(15),
                     child: _newImageFile != null
-                        ? Image.network(_newImageFile!.path, fit: BoxFit.cover) // Foto baru yang dipilih
+                        ? Image.network(
+                            _newImageFile!.path,
+                            fit: BoxFit.cover,
+                          ) // Foto baru yang dipilih
                         : Image.network(
                             "$imageServerBase${widget.product.imagePath}", // Foto lama dari server
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => 
-                                const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
+                                  Icons.image_not_supported,
+                                  size: 50,
+                                  color: Colors.grey,
+                                ),
                           ),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 10),
-            const Center(child: Text("Ketuk gambar untuk mengganti foto", 
-              style: TextStyle(fontSize: 12, color: Colors.grey))),
+            const Center(
+              child: Text(
+                "Ketuk gambar untuk mengganti foto",
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ),
 
             const SizedBox(height: 25),
-            
+
             // --- INPUT FIELDS ---
             _buildLabel("NAMA PRODUK"),
             _buildTextField(nameController, "Masukkan Nama Produk"),
@@ -118,10 +137,14 @@ class _ProductEditPageState extends State<ProductEditPage> {
 
             const SizedBox(height: 20),
             _buildLabel("DESKRIPSI"),
-            _buildTextField(descController, "Deskripsi lengkap produk...", maxLines: 4),
+            _buildTextField(
+              descController,
+              "Deskripsi lengkap produk...",
+              maxLines: 4,
+            ),
 
             const SizedBox(height: 40),
-            
+
             // --- TOMBOL SIMPAN ---
             SizedBox(
               width: double.infinity,
@@ -136,30 +159,50 @@ class _ProductEditPageState extends State<ProductEditPage> {
                     stock: int.tryParse(stockController.text) ?? 0,
                     category: categoryController.text,
                     description: descController.text,
-                    imagePath: widget.product.imagePath, // Tetap kirim path lama sebagai cadangan
+                    imagePath: widget
+                        .product
+                        .imagePath, // Tetap kirim path lama sebagai cadangan
                   );
 
                   // 2. Panggil service dengan DUA PARAMETER
                   // _newImageFile akan bernilai null jika user tidak memilih foto baru
-                  bool success = await ProductService().updateProduct(updatedData, _newImageFile);
+                  bool success = await ApiService().addProduct(
+                    updatedData,
+                    _newImageFile,
+                  );
 
                   if (success && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Produk berhasil diperbarui!")),
+                      const SnackBar(
+                        content: Text("Produk berhasil diperbarui!"),
+                      ),
                     );
-                    Navigator.pop(context, true); // Kembali dan beri sinyal sukses
+                    Navigator.pop(
+                      context,
+                      true,
+                    ); // Kembali dan beri sinyal sukses
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Gagal memperbarui produk!")),
+                      const SnackBar(
+                        content: Text("Gagal memperbarui produk!"),
+                      ),
                     );
                   }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text('Simpan Perubahan', 
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                child: const Text(
+                  'Simpan Perubahan',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ],
@@ -175,12 +218,21 @@ class _ProductEditPageState extends State<ProductEditPage> {
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Text(
         text,
-        style: TextStyle(color: primaryGreen, fontWeight: FontWeight.bold, fontSize: 12),
+        style: TextStyle(
+          color: primaryGreen,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, {int maxLines = 1, bool isNumber = false}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String hint, {
+    int maxLines = 1,
+    bool isNumber = false,
+  }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -189,7 +241,10 @@ class _ProductEditPageState extends State<ProductEditPage> {
         hintText: hint,
         filled: true,
         fillColor: const Color(0xFFFBFBFB),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 15,
+          vertical: 15,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey.shade300),
