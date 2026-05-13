@@ -15,17 +15,20 @@ class ProductEditPage extends StatefulWidget {
 class _ProductEditPageState extends State<ProductEditPage> {
   final Color primaryGreen = const Color(0xFF2E9900);
 
-  // Controller untuk input teks
+  // Controller untuk input teks (categoryController sudah dihapus)
   late TextEditingController nameController;
   late TextEditingController priceController;
   late TextEditingController stockController;
-  late TextEditingController categoryController;
   late TextEditingController descController;
+
+  // Variabel untuk Dropdown Kategori
+  String? _selectedCategory;
 
   // Variabel untuk menangani perubahan foto
   XFile? _newImageFile;
   final ImagePicker _picker = ImagePicker();
-  //ip
+  
+  // URL Server
   final String imageServerBase =
       "http://localhost/TOKO_MBAHMETH/api/public/assets/products/";
 
@@ -40,8 +43,15 @@ class _ProductEditPageState extends State<ProductEditPage> {
     stockController = TextEditingController(
       text: widget.product.stock.toString(),
     );
-    categoryController = TextEditingController(text: widget.product.category);
     descController = TextEditingController(text: widget.product.description);
+
+    // Mengatur nilai awal untuk Dropdown Kategori
+    List<String> validCategories = ['Pupuk', 'Benih', 'Alat', 'Obat'];
+    if (validCategories.contains(widget.product.category)) {
+      _selectedCategory = widget.product.category;
+    } else {
+      _selectedCategory = null; 
+    }
   }
 
   // Fungsi untuk memilih gambar baru dari galeri
@@ -133,7 +143,7 @@ class _ProductEditPageState extends State<ProductEditPage> {
 
             const SizedBox(height: 20),
             _buildLabel("KATEGORI"),
-            _buildTextField(categoryController, "Obat/Pupuk/Alat"),
+            _buildDropdownField("Pilih Kategori"),
 
             const SizedBox(height: 20),
             _buildLabel("DESKRIPSI"),
@@ -153,20 +163,18 @@ class _ProductEditPageState extends State<ProductEditPage> {
                 onPressed: () async {
                   // 1. Siapkan objek produk yang sudah diupdate
                   final updatedData = ProductModel(
-                    id: widget.product.id,
+                    id: widget.product.id, // Pastikan id terkirim
                     name: nameController.text,
                     price: int.tryParse(priceController.text) ?? 0,
                     stock: int.tryParse(stockController.text) ?? 0,
-                    category: categoryController.text,
+                    category: _selectedCategory ?? '', // Menggunakan value dari dropdown
                     description: descController.text,
-                    imagePath: widget
-                        .product
-                        .imagePath, // Tetap kirim path lama sebagai cadangan
+                    imagePath: widget.product.imagePath, // Tetap kirim path lama sebagai cadangan
                   );
 
-                  // 2. Panggil service dengan DUA PARAMETER
-                  // _newImageFile akan bernilai null jika user tidak memilih foto baru
-                  bool success = await ApiService().addProduct(
+                  // 2. Panggil service dengan fungsi UPDATE PRODUCT
+                  // Ini penting agar data tidak terduplikat
+                  bool success = await ApiService().updateProduct(
                     updatedData,
                     _newImageFile,
                   );
@@ -177,16 +185,15 @@ class _ProductEditPageState extends State<ProductEditPage> {
                         content: Text("Produk berhasil diperbarui!"),
                       ),
                     );
-                    Navigator.pop(
-                      context,
-                      true,
-                    ); // Kembali dan beri sinyal sukses
+                    Navigator.pop(context, true); // Kembali dan beri sinyal sukses
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Gagal memperbarui produk!"),
-                      ),
-                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Gagal memperbarui produk!"),
+                        ),
+                      );
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -252,6 +259,28 @@ class _ProductEditPageState extends State<ProductEditPage> {
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownField(String hint) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedCategory,
+          hint: Text(hint),
+          isExpanded: true,
+          items: <String>['Pupuk', 'Benih', 'Alat', 'Obat'].map((String value) {
+            return DropdownMenuItem<String>(value: value, child: Text(value));
+          }).toList(),
+          onChanged: (newValue) => setState(() => _selectedCategory = newValue),
         ),
       ),
     );
