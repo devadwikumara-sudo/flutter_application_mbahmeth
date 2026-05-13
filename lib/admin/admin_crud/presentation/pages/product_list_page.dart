@@ -1,8 +1,8 @@
 import 'product_edit_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_mbahmeth/widgets/widgetsadmin/product_card.dart';
 import 'package:flutter_application_mbahmeth/models/modelsadmin/product_model.dart';
-import '../widgets/widgetsadmin/product_card.dart';
-import '../../data/product_service.dart';
+import 'package:flutter_application_mbahmeth/services/api_service.dart';
 import 'product_create_page.dart';
 
 class ProductListPage extends StatefulWidget {
@@ -14,15 +14,17 @@ class ProductListPage extends StatefulWidget {
 
 class _ProductListPageState extends State<ProductListPage>
     with SingleTickerProviderStateMixin {
-  final ProductService _productService = ProductService();
-  //ganti ip setiap ganti wifi
-  final String imageServerBase = "http://172.16.115.174/api_pertanian/uploads/";
+  final ApiService _service = ApiService();
 
-  // Kontrol untuk Search & Filter
+  // Base URL untuk gambar (sesuaikan dengan folder di XAMPP)
+  final String imageServerBase =
+      "http://localhost/TOKO_MBAHMETH/public/assets/products/";
+
   List<ProductModel> _allProducts = [];
   List<ProductModel> _filteredProducts = [];
   String _searchQuery = "";
   late TabController _tabController;
+  bool _isLoading = true; // Indikator untuk mengontrol loading
 
   @override
   void initState() {
@@ -32,33 +34,38 @@ class _ProductListPageState extends State<ProductListPage>
     _loadData();
   }
 
-  // Fungsi ambil data dari database
+  // === FUNGSI AMBIL DATA (PERBAIKAN UTAMA) ===
   Future<void> _loadData() async {
-    final data = await _productService.getProducts();
-    setState(() {
-      _allProducts = data;
-      _applyFilter();
-    });
+    setState(() => _isLoading = true);
+    try {
+      // Memanggil fungsi yang benar: getAdminProducts()
+      final data = await _service.getAdminProducts();
+      setState(() {
+        _allProducts = data;
+        _applyFilter();
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("Error load data: $e");
+      setState(() => _isLoading = false);
+    }
   }
 
-  // Logika Filter: Gabungan Search & Tab
   void _applyFilter() {
     setState(() {
-      // 1. Filter berdasarkan Search
+      // 1. Filter Search
       _filteredProducts = _allProducts
           .where(
             (p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()),
           )
           .toList();
 
-      // 2. Filter berdasarkan Tab Status
+      // 2. Filter Tab Status
       if (_tabController.index == 1) {
-        // Stok Menipis (Misal: < 20 dan > 0)
         _filteredProducts = _filteredProducts
             .where((p) => p.stock > 0 && p.stock < 20)
             .toList();
       } else if (_tabController.index == 2) {
-        // Stok Habis (0)
         _filteredProducts = _filteredProducts
             .where((p) => p.stock == 0)
             .toList();
@@ -78,27 +85,27 @@ class _ProductListPageState extends State<ProductListPage>
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          // --- HEADER & SEARCH AREA ---
+          // HEADER AREA
           Container(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
             color: primaryGreen,
             child: Column(
               children: [
-                // Logo & Nama 
                 Row(
                   children: [
                     CircleAvatar(
                       backgroundColor: Colors.white,
                       radius: 20,
                       child: Image.asset(
-                        'assets/images/logo_MbahMeth.png',
+                        'assets/images/logo.png',
                         height: 25,
+                        errorBuilder: (c, e, s) => const Icon(Icons.shop),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Column(
+                    const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           "MbahMeth",
                           style: TextStyle(
@@ -116,7 +123,6 @@ class _ProductListPageState extends State<ProductListPage>
                   ],
                 ),
                 const SizedBox(height: 20),
-                // Search Bar
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -139,24 +145,38 @@ class _ProductListPageState extends State<ProductListPage>
             ),
           ),
 
-          // --- TAB FILTER ---
+          // TABBAR
           TabBar(
             controller: _tabController,
             labelColor: primaryGreen,
             unselectedLabelColor: Colors.grey,
             indicatorColor: primaryGreen,
-            indicatorWeight: 3,
             tabs: const [
-              Tab(text: "Semua Produk"),
-              Tab(text: "Stok Menipis"),
-              Tab(text: "Stok Habis"),
+              Tab(text: "Semua"),
+              Tab(text: "Menipis"),
+              Tab(text: "Habis"),
             ],
           ),
 
-          // --- LIST PRODUK ---
+          // LIST AREA
           Expanded(
-            child: _allProducts.isEmpty
-                ? const Center(child: CircularProgressIndicator())
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: primaryGreen),
+                  )
+                : _filteredProducts.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("Tidak ada data produk"),
+                        TextButton(
+                          onPressed: _loadData,
+                          child: const Text("Refresh"),
+                        ),
+                      ],
+                    ),
+                  )
                 : RefreshIndicator(
                     onRefresh: _loadData,
                     child: ListView.builder(
@@ -177,13 +197,44 @@ class _ProductListPageState extends State<ProductListPage>
                                     ProductEditPage(product: produk),
                               ),
                             ).then((value) {
-                              // Jika value true, berarti ada perubahan, maka refresh data
-                              if (value == true) {
-                                _loadData();
-                              }
+                              if (value == true) _loadData();
                             });
                           },
-                          onDelete: () {},
+                          onDelete: () {
+                            // Implementasi delete jika sudah ada di ApiService
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text("Hapus Produk"),
+                                content: const Text("Apakah Anda yakin ingin menghapus produk ini?"),
+                                actions: [
+                                  TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Batal"),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.pop(context); // Tutup dialog
+            // Panggil service delete menggunakan ID produk
+            bool success = await ApiService().deleteProduct(produk.id.toString());
+            
+            if (success) {
+              _loadData(); // Refresh list setelah hapus
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Produk berhasil dihapus")),
+              );
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Gagal menghapus produk")),
+              );
+            }
+          },
+          child: const Text("Hapus", style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
+                          },
                         );
                       },
                     ),
@@ -191,8 +242,6 @@ class _ProductListPageState extends State<ProductListPage>
           ),
         ],
       ),
-
-      // Floating Action Button Tambah (Hijau)
       floatingActionButton: FloatingActionButton(
         backgroundColor: primaryGreen,
         onPressed: () => Navigator.push(
