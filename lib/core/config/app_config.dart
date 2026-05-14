@@ -1,5 +1,5 @@
 class AppConfig {
-  static const String ipAddress = "172.16.106.228"; // Sesuaikan dengan IPv4 Anda
+  static const String ipAddress = "192.168.100.11"; // Sesuaikan dengan IPv4 Anda
 
   // Base URL utama menuju folder 'api'
   static const String baseUrl = "http://$ipAddress/toko_mbahmeth/api";
