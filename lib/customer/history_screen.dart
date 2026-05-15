@@ -714,7 +714,7 @@ class _OrderSearchDelegate extends SearchDelegate<String> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: results.length,
-      separatorBuilder: (_, __) =>
+      separatorBuilder: (_, _) =>
           Divider(height: 1, color: Colors.grey.shade100),
       itemBuilder: (ctx, i) => _buildOrderTile(ctx, results[i]),
     );
@@ -742,7 +742,7 @@ class _OrderSearchDelegate extends SearchDelegate<String> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: results.length,
-      separatorBuilder: (_, __) =>
+      separatorBuilder: (_, _) =>
           Divider(height: 1, color: Colors.grey.shade100),
       itemBuilder: (ctx, i) => _buildOrderTile(ctx, results[i]),
     );
@@ -939,7 +939,7 @@ class _DetailPesananSheet extends StatelessWidget {
                               width: 56,
                               height: 56,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                              errorBuilder: (_, _, _) => Container(
                                 width: 56,
                                 height: 56,
                                 color: AppColors.successLight,

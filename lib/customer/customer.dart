@@ -369,7 +369,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           else if (_featuredProducts.isEmpty)
             Center(child: Padding(padding: const EdgeInsets.all(32), child: Column(children: [Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.textLight), const SizedBox(height: 8), const Text('Tidak ada produk', style: TextStyle(color: AppColors.textLight))])) )
           else
-            ..._featuredProducts.map(_buildProductCard).toList(),
+            ..._featuredProducts.map(_buildProductCard),
         ],
       ),
     );
@@ -389,7 +389,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               child: Image.network(
                 '${ApiService.imageUrl}${item['gambar_produk'] ?? ''}',
                 width: 95, height: 95, fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(width: 95, height: 95, color: AppColors.successLight, child: const Icon(Icons.eco_rounded, color: AppColors.primaryGreen, size: 32)),
+                errorBuilder: (_, _, _) => Container(width: 95, height: 95, color: AppColors.successLight, child: const Icon(Icons.eco_rounded, color: AppColors.primaryGreen, size: 32)),
                 loadingBuilder: (_, child, progress) {
                   if (progress == null) return child;
                   return Container(width: 95, height: 95, color: AppColors.surfaceGrey, child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryGreen))));

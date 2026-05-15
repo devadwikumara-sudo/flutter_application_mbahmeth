@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter_application_mbahmeth/services/api_service.dart';
 import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
-import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/primary_button.dart';
 import 'package:flutter_application_mbahmeth/customer/success_page.dart';
+import 'package:flutter_application_mbahmeth/customer/receipt_widget.dart';
+import 'package:flutter_application_mbahmeth/customer/receipt_service.dart';
 
 class CheckoutPage extends StatefulWidget {
   final int idOrder;
@@ -33,11 +35,31 @@ class _CheckoutPageState extends State<CheckoutPage> {
         RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Simpan struk ke galeri menggunakan ReceiptService (off-screen render)
+  // ─────────────────────────────────────────────────────────────────────────
+  Future<bool> _saveReceiptToGallery() async {
+    return ReceiptService.saveReceiptToGallery(
+      child: ReceiptWidget(
+        idOrder: widget.idOrder,
+        cartItems: widget.cartItems,
+        totalHarga: widget.totalHarga,
+        metodePembayaran: _paymentMethod,
+        metodeAmbil: _deliveryMethod ?? 'Ambil Di Toko',
+        tanggal: DateTime.now(),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Alur utama checkout
+  // ─────────────────────────────────────────────────────────────────────────
   Future<void> _prosesCheckout() async {
     if (_deliveryMethod == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Silakan pilih metode pengambilan terlebih dahulu'),
+          content:
+              const Text('Silakan pilih metode pengambilan terlebih dahulu'),
           backgroundColor: AppColors.primaryRed,
           behavior: SnackBarBehavior.floating,
           shape:
@@ -49,23 +71,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     setState(() => _isProcessing = true);
 
+    // 1. Panggil API checkout
     final success = await _api.checkout(
       idOrder: widget.idOrder,
       metodePembayaran: _paymentMethod,
       metodeAmbil: _deliveryMethod!,
     );
 
-    setState(() => _isProcessing = false);
-
-    if (!mounted) return;
-
-    if (success) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const SuccessPage()),
-        (route) => route.isFirst,
-      );
-    } else {
+    if (!success) {
+      setState(() => _isProcessing = false);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Gagal melakukan checkout. Coba lagi.'),
@@ -75,16 +90,81 @@ class _CheckoutPageState extends State<CheckoutPage> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
+      return;
     }
+
+    // 2. Tampilkan dialog struk + proses simpan ke galeri
+    if (!mounted) return;
+    _showReceiptSavingDialog();
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Dialog: preview struk + tombol simpan & lanjut
+  // ─────────────────────────────────────────────────────────────────────────
+  void _showReceiptSavingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _ReceiptSavingDialog(
+        receiptWidget: ReceiptWidget(
+          idOrder: widget.idOrder,
+          cartItems: widget.cartItems,
+          totalHarga: widget.totalHarga,
+          metodePembayaran: _paymentMethod,
+          metodeAmbil: _deliveryMethod!,
+          tanggal: DateTime.now(),
+        ),
+        onSaveAndContinue: () async {
+          Navigator.of(ctx).pop(); // tutup dialog
+
+          // Simpan ke galeri
+          final saved = await _saveReceiptToGallery();
+
+          if (!mounted) return;
+          setState(() => _isProcessing = false);
+
+          if (!saved) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                    'Struk gagal disimpan ke galeri, tapi pesanan berhasil!'),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          }
+
+          // 3. Navigate ke SuccessPage
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SuccessPage(
+                idOrder: widget.idOrder,
+                totalHarga: widget.totalHarga,
+                metodePembayaran: _paymentMethod,
+                metodeAmbil: _deliveryMethod!,
+                receiptSaved: saved,
+              ),
+            ),
+            (route) => route.isFirst,
+          );
+        },
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Build
+  // ─────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: Column(
         children: [
-          // ── Header ──
+          // ── Header ────────────────────────────────────────────────────
           Container(
             padding: EdgeInsets.fromLTRB(
                 16, MediaQuery.of(context).padding.top + 12, 16, 20),
@@ -121,26 +201,22 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   ],
                 ),
                 const SizedBox(height: 20),
-
-                // Step indicator
                 _buildStepIndicator(),
               ],
             ),
           ),
 
-          // ── Content ──
+          // ── Content ───────────────────────────────────────────────────
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. Ringkasan Pesanan
                   _buildSectionLabel('Ringkasan Pesanan'),
                   _buildOrderSummaryCard(),
                   const SizedBox(height: 20),
 
-                  // 2. Metode Pembayaran
                   _buildSectionLabel('Metode Pembayaran'),
                   _buildOptionCard(
                     title: 'Bayar Di Toko',
@@ -161,7 +237,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // 3. Metode Ambil
                   _buildSectionLabel('Metode Pengambilan'),
                   _buildOptionCard(
                     title: 'Ambil Di Toko',
@@ -174,7 +249,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // 4. Info konfirmasi
+                  // Info konfirmasi
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -228,14 +303,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
           ),
 
-          // ── Bottom CTA ──
+          // ── Bottom CTA ─────────────────────────────────────────────────
           Container(
             padding: EdgeInsets.fromLTRB(
-                20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
+              20,
+              16,
+              20,
+              MediaQuery.of(context).padding.bottom + 16,
+            ),
             decoration: BoxDecoration(
               color: AppColors.backgroundWhite,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(24)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.06),
@@ -245,53 +322,55 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ],
             ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                // Total
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.backgroundLight,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.cardBorder),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Pembayaran',
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Total Pembayaran',
                         style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                          color: AppColors.textMedium,
-                        ),
+                            color: AppColors.textMedium, fontSize: 13)),
+                    Text(
+                      'Rp ${_formatHarga(widget.totalHarga)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primaryGreen,
                       ),
-                      Text(
-                        'Rp ${_formatHarga(widget.totalHarga)}',
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryGreen,
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isProcessing ? null : _prosesCheckout,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      disabledBackgroundColor:
+                          AppColors.primaryGreen.withOpacity(0.6),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: _isProcessing
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Konfirmasi & Bayar',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
-                ),
-
-                PrimaryButton(
-                  text: 'Konfirmasi Pesanan',
-                  onPressed: _isProcessing ? null : _prosesCheckout,
-                  isLoading: _isProcessing,
-                  icon: const Icon(Icons.check_circle_outline_rounded,
-                      color: Colors.white, size: 20),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Dengan menekan tombol ini, pesanan Anda akan diproses.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: AppColors.textHint),
                 ),
               ],
             ),
@@ -301,71 +380,69 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  // ── Widget Helpers ──────────────────────────────────────────────────────────
+  // ── Helper builders ───────────────────────────────────────────────────────
 
-  Widget _buildSectionLabel(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: AppColors.textDark,
+  Widget _buildStepIndicator() {
+    return Row(
+      children: [
+        _buildStep('Keranjang', Icons.shopping_cart_outlined, true),
+        _buildStepLine(true),
+        _buildStep('Checkout', Icons.receipt_long_outlined, true),
+        _buildStepLine(false),
+        _buildStep('Selesai', Icons.check_circle_outline_rounded, false),
+      ],
+    );
+  }
+
+  Widget _buildStep(String label, IconData icon, bool active) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: active ? Colors.white : Colors.white.withOpacity(0.3),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 16,
+            color: active ? AppColors.primaryGreen : Colors.white,
+          ),
         ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: active ? Colors.white : Colors.white.withOpacity(0.6),
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepLine(bool active) {
+    return Expanded(
+      child: Container(
+        height: 2,
+        margin: const EdgeInsets.only(bottom: 18),
+        color: active ? Colors.white : Colors.white.withOpacity(0.3),
       ),
     );
   }
 
-  Widget _buildStepIndicator() {
-    final steps = ['Pembayaran', 'Pengambilan', 'Konfirmasi'];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(steps.length * 2 - 1, (i) {
-        if (i.isOdd) {
-          // Garis
-          return Expanded(
-            child: Container(
-              height: 2,
-              margin: const EdgeInsets.only(bottom: 20),
-              color: Colors.white38,
-            ),
-          );
-        }
-        final stepIndex = i ~/ 2;
-        return Column(
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: Center(
-                child: Text(
-                  '${stepIndex + 1}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              steps[stepIndex],
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        );
-      }),
+  Widget _buildSectionLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          color: AppColors.textDark,
+        ),
+      ),
     );
   }
 
@@ -374,7 +451,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.backgroundWhite,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.cardBorder),
         boxShadow: AppColors.cardShadow,
       ),
@@ -383,38 +460,37 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ...widget.cartItems.asMap().entries.map((entry) {
             final i = entry.key;
             final item = entry.value;
-            final int jumlah =
-                int.tryParse(item['jumlah']?.toString() ?? '1') ?? 1;
-            final double subtotal =
-                double.tryParse(item['subtotal']?.toString() ?? '0') ?? 0;
-            final double hargaSatuan =
-                double.tryParse(item['harga']?.toString() ?? '0') ?? 0;
+            final subtotal = double.tryParse(
+                      item['subtotal']?.toString() ?? '0',
+                    ) ??
+                (double.tryParse(item['harga']?.toString() ?? '0') ?? 0) *
+                    (int.tryParse(item['jumlah']?.toString() ?? '1') ?? 1);
 
             return Column(
               children: [
-                _buildSummaryItem(
-                  gambarUrl:
-                      '${ApiService.imageUrl}${item['gambar_produk'] ?? ''}',
-                  title: item['nama_produk'] ?? '-',
-                  subtext: '$jumlah x Rp ${_formatHarga(hargaSatuan)}',
-                  qty: '$jumlah',
-                  subtotal: subtotal,
-                ),
-                if (i < widget.cartItems.length - 1)
+                if (i > 0)
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                    padding: EdgeInsets.symmetric(vertical: 10),
                     child: Divider(color: AppColors.divider, thickness: 1),
                   ),
+                _buildSummaryItem(
+                  gambarUrl:
+                      '${ApiService.imageUrl}${item['gambar_produk']?.toString() ?? ''}',
+                  title: item['nama_produk']?.toString() ??
+                      item['name']?.toString() ??
+                      '-',
+                  subtext:
+                      'Rp ${_formatHarga(double.tryParse(item['harga']?.toString() ?? '0') ?? 0)} / item',
+                  qty: item['jumlah']?.toString() ?? '1',
+                  subtotal: subtotal,
+                ),
               ],
             );
           }),
-
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Divider(color: AppColors.divider, thickness: 1),
           ),
-
-          // Total row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -459,8 +535,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           color: AppColors.backgroundWhite,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color:
-                isSelected ? AppColors.primaryGreen : AppColors.cardBorder,
+            color: isSelected ? AppColors.primaryGreen : AppColors.cardBorder,
             width: isSelected ? 2 : 1,
           ),
           boxShadow:
@@ -468,7 +543,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         ),
         child: Row(
           children: [
-            // Icon container
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -486,8 +560,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
             ),
             const SizedBox(width: 14),
-
-            // Title + badge
             Expanded(
               child: Row(
                 children: [
@@ -523,8 +595,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ],
               ),
             ),
-
-            // Radio indicator
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 22,
@@ -562,7 +632,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Gambar
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: Image.network(
@@ -580,8 +649,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
         ),
         const SizedBox(width: 12),
-
-        // Info
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -600,9 +667,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               Text(
                 subtext,
                 style: const TextStyle(
-                  color: AppColors.textLight,
-                  fontSize: 12,
-                ),
+                    color: AppColors.textLight, fontSize: 12),
               ),
               const SizedBox(height: 4),
               Container(
@@ -624,8 +689,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ],
           ),
         ),
-
-        // Subtotal
         Text(
           'Rp ${_formatHarga(subtotal)}',
           style: const TextStyle(
@@ -635,6 +698,81 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dialog preview struk + tombol simpan & lanjut
+// ─────────────────────────────────────────────────────────────────────────────
+class _ReceiptSavingDialog extends StatefulWidget {
+  final Widget receiptWidget;
+  final VoidCallback onSaveAndContinue;
+
+  const _ReceiptSavingDialog({
+    required this.receiptWidget,
+    required this.onSaveAndContinue,
+  });
+
+  @override
+  State<_ReceiptSavingDialog> createState() => _ReceiptSavingDialogState();
+}
+
+class _ReceiptSavingDialogState extends State<_ReceiptSavingDialog> {
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Struk preview ──────────────────────────────────────────────
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: SingleChildScrollView(
+              child: widget.receiptWidget,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Tombol simpan & lanjut ─────────────────────────────────────
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: _saving
+                  ? null
+                  : () {
+                      setState(() => _saving = true);
+                      widget.onSaveAndContinue();
+                    },
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.save_alt_rounded, size: 20),
+              label: Text(
+                _saving ? 'Menyimpan struk...' : 'Simpan Struk & Lanjut',
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF339F16),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
