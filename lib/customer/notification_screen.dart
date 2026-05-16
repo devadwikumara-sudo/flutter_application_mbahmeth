@@ -318,7 +318,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       width: 64,
                       height: 64,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         width: 64,
                         height: 64,
                         color: AppColors.successLight,
@@ -625,7 +625,7 @@ class _DetailNotifSheet extends StatelessWidget {
                               width: 52,
                               height: 52,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                              errorBuilder: (_, _, _) => Container(
                                 width: 52,
                                 height: 52,
                                 color: AppColors.successLight,

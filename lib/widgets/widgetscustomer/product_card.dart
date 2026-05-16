@@ -106,7 +106,7 @@ class ProductCard extends StatelessWidget {
         child: Image.network(
           url,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
+          errorBuilder: (_, _, _) => Container(
             color: AppColors.successLight,
             child: const Icon(
               Icons.eco_rounded,

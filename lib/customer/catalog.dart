@@ -286,7 +286,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           ),
                         );
                       },
-                      errorBuilder: (_, __, ___) => Container(
+                      errorBuilder: (_, _, _) => Container(
                         color: AppColors.successLight,
                         child: const Center(
                           child: Icon(Icons.eco_rounded,

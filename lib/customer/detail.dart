@@ -125,7 +125,7 @@ class _DetailScreenState extends State<DetailScreen> {
                 child: Image.network(
                   '${ApiService.imageUrl}${product['gambar_produk'] ?? ''}',
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     color: AppColors.successLight,
                     child: const Center(
                       child: Icon(Icons.eco_rounded,
