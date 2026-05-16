@@ -20,13 +20,8 @@ class ReceiptService {
     double pixelRatio = 3.0,
   }) async {
     try {
-      // 1. Buat GlobalKey untuk RepaintBoundary
-      final repaintKey = GlobalKey();
-
-      // 2. Render widget di luar layar menggunakan RenderRepaintBoundary
-      final renderView = RenderRepaintBoundary();
-
-      // 3. Gunakan overlayEntry untuk merender widget secara off-screen
+      // 1. Render widget di luar layar menggunakan RenderRepaintBoundary
+      // 2. Gunakan overlayEntry untuk merender widget secara off-screen
       //    lalu capture dengan RepaintBoundary
       final bytes = await _captureWidget(
         child: child,

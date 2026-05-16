@@ -285,14 +285,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
           const SizedBox(height: 18),
           SizedBox(
-            height: 155,
+            height: 180,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: PageView.builder(
                 controller: _pageController,
                 onPageChanged: (i) => setState(() => _currentBannerIndex = i),
                 itemCount: _dummyBannerImages.length,
-                itemBuilder: (_, i) => Image.asset(_dummyBannerImages[i], fit: BoxFit.cover),
+                itemBuilder: (_, i) => Image.asset(
+                  _dummyBannerImages[i],
+                  width: double.infinity,
+                  fit: BoxFit.fill,
+                ),
               ),
             ),
           ),

@@ -15,7 +15,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const Color _green = Color(0xFF2E9900);
   static const Color _greenDark = Color(0xFF1F6B00);
   static const Color _greenLight = Color(0xFFE8F5E2);
@@ -40,21 +40,22 @@ class _ProfileScreenState extends State<ProfileScreen>
     _animCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 600));
     _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
+    WidgetsBinding.instance.addObserver(this);
     _loadUserData();
     _animCtrl.forward();
   }
 
-  // ── FIX Bug 3: didChangeDependencies dipanggil setiap tab profil aktif ──
-  // Ini memastikan data & statistik di-refresh saat user kembali ke tab profil
-  // (termasuk setelah ganti akun atau setelah dari halaman lain).
+  // ── Refresh stats saat app kembali ke foreground ──
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadUserData();
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadUserData();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _animCtrl.dispose();
     super.dispose();
   }
@@ -329,11 +330,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                             MaterialPageRoute(
                                 builder: (_) => const HistoryScreen()),
                           );
-                          // ── FIX: Refresh statistik setelah kembali dari history ──
-                          final prefs =
-                              await SharedPreferences.getInstance();
-                          final userId = prefs.getInt('id_user') ?? 0;
-                          if (userId > 0) _loadStats(userId);
+                          // Refresh statistik setelah kembali dari history
+                          _loadUserData();
                         },
                       ),
                       _MenuData(

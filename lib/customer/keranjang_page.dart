@@ -182,7 +182,60 @@ class CartPageState extends State<CartPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
-      body: _isLoading
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header ──
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  )
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.shopping_cart_rounded,
+                      color: Color(0xFF339F16), size: 22),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Keranjang Belanja',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const Spacer(),
+                  if (_cartItems.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '${_cartItems.length} item',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF339F16),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // ── Body ──
+            Expanded(
+              child: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFF339F16)))
           : _error != null
@@ -516,6 +569,10 @@ class CartPageState extends State<CartPage> {
                             );
                           },
                         ),
+            ),
+          ],
+        ),
+      ),
 
       // ── Bottom: Checkout bar (jika ada item) ──
       bottomNavigationBar: _cartItems.isNotEmpty

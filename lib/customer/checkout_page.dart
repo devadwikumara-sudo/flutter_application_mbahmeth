@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_mbahmeth/services/api_service.dart';
 import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
 import 'package:flutter_application_mbahmeth/customer/success_page.dart';
@@ -28,7 +28,26 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String _paymentMethod = 'Bayar Di Toko';
   String? _deliveryMethod;
   bool _isProcessing = false;
+  String _namaPembeli = '';
   final ApiService _api = ApiService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNamaPembeli();
+  }
+
+  Future<void> _loadNamaPembeli() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _namaPembeli = prefs.getString('nama') ??
+            prefs.getString('name') ??
+            prefs.getString('nama_lengkap') ??
+            '';
+      });
+    }
+  }
 
   String _formatHarga(double nilai) {
     return nilai.toStringAsFixed(0).replaceAllMapped(
@@ -47,6 +66,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         metodePembayaran: _paymentMethod,
         metodeAmbil: _deliveryMethod ?? 'Ambil Di Toko',
         tanggal: DateTime.now(),
+        namaPembeli: _namaPembeli,
       ),
     );
   }
@@ -113,6 +133,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           metodePembayaran: _paymentMethod,
           metodeAmbil: _deliveryMethod!,
           tanggal: DateTime.now(),
+          namaPembeli: _namaPembeli,
         ),
         onSaveAndContinue: () async {
           Navigator.of(ctx).pop(); // tutup dialog
