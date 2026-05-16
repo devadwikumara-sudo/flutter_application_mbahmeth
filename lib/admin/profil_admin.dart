@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'kelola_akun_admin.dart';
+
 class ProfilAdmin extends StatefulWidget {
   const ProfilAdmin({super.key});
 
@@ -10,167 +12,291 @@ class ProfilAdmin extends StatefulWidget {
 class _ProfilAdminState extends State<ProfilAdmin> {
   @override
   Widget build(BuildContext context) {
+    const primaryGreen = Color(0xFF2E9900);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F2F2),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _header(),
-              _profileSection(),
-              _settingsSection(),
-              const SizedBox(height: 80),
-            ],
+
+      appBar: AppBar(
+        backgroundColor: primaryGreen,
+        elevation: 0,
+
+        title: const Text(
+          "Profil Admin",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
+        ),
+
+        centerTitle: true,
+      ),
+
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+
+        child: Column(
+          children: [
+            // PROFILE CARD
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+
+              child: Column(
+                children: [
+                  Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 55,
+                        backgroundColor: const Color(0xFFD6F0CC),
+
+                        backgroundImage: const NetworkImage(
+                          "https://i.pravatar.cc/300",
+                        ),
+                      ),
+
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+
+                          decoration: BoxDecoration(
+                            color: primaryGreen,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+
+                          child: const Icon(
+                            Icons.edit,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  const Text(
+                    "Admin Mbah Met",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  const Text(
+                    "Super Administrator",
+                    style: TextStyle(
+                      color: Color(0xFF577E3D),
+                      fontSize: 14,
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.email,
+                        color: Colors.grey,
+                        size: 18,
+                      ),
+
+                      const SizedBox(width: 8),
+
+                      const Text(
+                        "admin@tani12.com",
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // PENGATURAN
+            Align(
+              alignment: Alignment.centerLeft,
+
+              child: Text(
+                "Pengaturan Akun",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 14),
+
+            // MENU KELOLA AKUN
+            _buildMenuCard(
+              icon: Icons.person_outline,
+              title: "Kelola Akun",
+              subtitle: "Informasi pribadi dan profil",
+              color: const Color(0xFFD6F0CC),
+
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const KelolaAkunAdmin(),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 40),
+
+            // LOGOUT BUTTON
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(
+                    color: Colors.redAccent,
+                  ),
+
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Logout berhasil"),
+                    ),
+                  );
+                },
+
+                icon: const Icon(
+                  Icons.logout,
+                  color: Colors.redAccent,
+                ),
+
+                label: const Text(
+                  "Keluar Sesi",
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ================= HEADER =================
-  Widget _header() {
-    return Container(
-      color: const Color(0xFF2E9900),
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: const [
-          Icon(Icons.person, color: Colors.white),
-          SizedBox(width: 12),
-          Text(
-            "Profil Admin",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+  Widget _buildMenuCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
-          ),
-          Spacer(),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
 
-  // ================= PROFILE =================
-  Widget _profileSection() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Column(
-        children: [
-          Stack(
-            alignment: Alignment.bottomRight,
-            children: [
-              CircleAvatar(
-                radius: 50,
-                backgroundImage: NetworkImage(
-                  "https://figma-alpha-api.s3.us-west-2.amazonaws.com/images/22766fdd-1daf-4768-af1e-e2eb2225ae87",
-                ),
-              ),
-              GestureDetector(
-                onTap: () {},
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: const [
-                      BoxShadow(blurRadius: 4, color: Colors.black26)
-                    ],
-                  ),
-                  child: const Icon(Icons.edit, size: 16),
-                ),
-              )
-            ],
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            "Admin Mbah Met",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            "Super Administrator",
-            style: TextStyle(color: Color(0xFF577E3D)),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.email, size: 16, color: Colors.grey),
-              SizedBox(width: 6),
-              Text(
-                "admin@tani12.com",
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
 
-  // ================= SETTINGS =================
-  Widget _settingsSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Pengaturan Akun",
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-
-          // Card Pengaturan
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8F6F6),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(blurRadius: 2, color: Colors.black12)
-              ],
-            ),
-            child: ListTile(
-              leading: const Icon(Icons.person, color: Colors.green),
-              title: const Text("Kelola Akun"),
-              subtitle: const Text("Informasi pribadi dan profil"),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-              onTap: () {},
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Logout Button
-          GestureDetector(
-            onTap: () {},
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 18),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFECACA)),
-                color: Colors.white,
+                color: color,
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.logout, color: Color(0xFFDC2626)),
-                  SizedBox(width: 10),
+
+              child: Icon(
+                icon,
+                color: const Color(0xFF2E9900),
+              ),
+            ),
+
+            const SizedBox(width: 16),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+
+                children: [
                   Text(
-                    "Keluar Sesi",
-                    style: TextStyle(
-                      color: Color(0xFFDC2626),
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 13,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 18,
+              color: Colors.grey,
+            ),
+          ],
+        ),
       ),
     );
   }

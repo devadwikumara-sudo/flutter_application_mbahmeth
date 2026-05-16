@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_mbahmeth/services/api_service.dart';
+import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
 import 'package:flutter_application_mbahmeth/customer/success_page.dart';
+import 'package:flutter_application_mbahmeth/customer/receipt_widget.dart';
+import 'package:flutter_application_mbahmeth/customer/receipt_service.dart';
 
 class CheckoutPage extends StatefulWidget {
   final int idOrder;
@@ -24,21 +28,62 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String _paymentMethod = 'Bayar Di Toko';
   String? _deliveryMethod;
   bool _isProcessing = false;
+  String _namaPembeli = '';
   final ApiService _api = ApiService();
 
-  String _formatHarga(double nilai) {
-    return nilai
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+  @override
+  void initState() {
+    super.initState();
+    _loadNamaPembeli();
   }
 
+  Future<void> _loadNamaPembeli() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _namaPembeli = prefs.getString('nama') ??
+            prefs.getString('name') ??
+            prefs.getString('nama_lengkap') ??
+            '';
+      });
+    }
+  }
+
+  String _formatHarga(double nilai) {
+    return nilai.toStringAsFixed(0).replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Simpan struk ke galeri menggunakan ReceiptService (off-screen render)
+  // ─────────────────────────────────────────────────────────────────────────
+  Future<bool> _saveReceiptToGallery() async {
+    return ReceiptService.saveReceiptToGallery(
+      child: ReceiptWidget(
+        idOrder: widget.idOrder,
+        cartItems: widget.cartItems,
+        totalHarga: widget.totalHarga,
+        metodePembayaran: _paymentMethod,
+        metodeAmbil: _deliveryMethod ?? 'Ambil Di Toko',
+        tanggal: DateTime.now(),
+        namaPembeli: _namaPembeli,
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Alur utama checkout
+  // ─────────────────────────────────────────────────────────────────────────
   Future<void> _prosesCheckout() async {
     if (_deliveryMethod == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan pilih metode pengambilan terlebih dahulu'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content:
+              const Text('Silakan pilih metode pengambilan terlebih dahulu'),
+          backgroundColor: AppColors.primaryRed,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
       return;
@@ -46,313 +91,307 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     setState(() => _isProcessing = true);
 
+    // 1. Panggil API checkout
     final success = await _api.checkout(
       idOrder: widget.idOrder,
       metodePembayaran: _paymentMethod,
       metodeAmbil: _deliveryMethod!,
     );
 
-    setState(() => _isProcessing = false);
-
-    if (!mounted) return;
-
-    if (success) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const SuccessPage()),
-        (route) => route.isFirst, // Bersihkan stack sampai beranda
-      );
-    } else {
+    if (!success) {
+      setState(() => _isProcessing = false);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gagal melakukan checkout. Coba lagi.'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Gagal melakukan checkout. Coba lagi.'),
+          backgroundColor: AppColors.primaryRed,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
+      return;
     }
+
+    // 2. Tampilkan dialog struk + proses simpan ke galeri
+    if (!mounted) return;
+    _showReceiptSavingDialog();
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Dialog: preview struk + tombol simpan & lanjut
+  // ─────────────────────────────────────────────────────────────────────────
+  void _showReceiptSavingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _ReceiptSavingDialog(
+        receiptWidget: ReceiptWidget(
+          idOrder: widget.idOrder,
+          cartItems: widget.cartItems,
+          totalHarga: widget.totalHarga,
+          metodePembayaran: _paymentMethod,
+          metodeAmbil: _deliveryMethod!,
+          tanggal: DateTime.now(),
+          namaPembeli: _namaPembeli,
+        ),
+        onSaveAndContinue: () async {
+          Navigator.of(ctx).pop(); // tutup dialog
+
+          // Simpan ke galeri
+          final saved = await _saveReceiptToGallery();
+
+          if (!mounted) return;
+          setState(() => _isProcessing = false);
+
+          if (!saved) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                    'Struk gagal disimpan ke galeri, tapi pesanan berhasil!'),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+          }
+
+          // 3. Navigate ke SuccessPage
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SuccessPage(
+                idOrder: widget.idOrder,
+                totalHarga: widget.totalHarga,
+                metodePembayaran: _paymentMethod,
+                metodeAmbil: _deliveryMethod!,
+                receiptSaved: saved,
+              ),
+            ),
+            (route) => route.isFirst,
+          );
+        },
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Build
+  // ─────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.backgroundLight,
       body: Column(
         children: [
-          // ── Header Hijau ──
+          // ── Header ────────────────────────────────────────────────────
           Container(
-            color: const Color(0xFF339F16),
-            padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
-            child: Row(
+            padding: EdgeInsets.fromLTRB(
+                16, MediaQuery.of(context).padding.top + 12, 16, 20),
+            decoration: const BoxDecoration(
+              gradient: AppColors.brandGradient,
+              borderRadius:
+                  BorderRadius.vertical(bottom: Radius.circular(28)),
+            ),
+            child: Column(
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back_ios,
-                      color: Colors.white, size: 20),
-                ),
-                const Expanded(
-                  child: Center(
-                    child: Text(
-                      'Pesan',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white, size: 18),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Konfirmasi Pesanan',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(height: 20),
+                _buildStepIndicator(),
               ],
             ),
           ),
 
-          // ── Scrollable Content ──
+          // ── Content ───────────────────────────────────────────────────
           Expanded(
             child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Step Progress
-                  Container(
-                    color: const Color(0xFFF5F5F5),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 20, horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildStep(1, 'Pembayaran', true),
-                        _buildLine(),
-                        _buildStep(2, 'Ambil Barang', true),
-                        _buildLine(),
-                        _buildStep(3, 'Konfirmasi', true),
-                      ],
-                    ),
-                  ),
+                  _buildSectionLabel('Ringkasan Pesanan'),
+                  _buildOrderSummaryCard(),
+                  const SizedBox(height: 20),
 
-                  // ── 1. Ringkasan Pesanan ──
-                  _buildSectionTitle('Ringkasan Pesanan'),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        children: [
-                          ...widget.cartItems.asMap().entries.map((entry) {
-                            final i = entry.key;
-                            final item = entry.value;
-                            final int jumlah = int.tryParse(
-                                    item['jumlah']?.toString() ?? '1') ??
-                                1;
-                            final double subtotal = double.tryParse(
-                                    item['subtotal']?.toString() ?? '0') ??
-                                0;
-                            final double hargaSatuan = double.tryParse(
-                                    item['harga']?.toString() ?? '0') ??
-                                0;
-
-                            return Column(
-                              children: [
-                                _buildSummaryItem(
-                                  gambarUrl:
-                                      '${ApiService.imageUrl}${item['gambar_produk'] ?? ''}',
-                                  title: item['nama_produk'] ?? '-',
-                                  subtext:
-                                      '$jumlah x Rp ${_formatHarga(hargaSatuan)}',
-                                  qty: '$jumlah',
-                                  subtotal: subtotal,
-                                ),
-                                if (i < widget.cartItems.length - 1)
-                                  const Padding(
-                                    padding:
-                                        EdgeInsets.symmetric(vertical: 10),
-                                    child: Divider(
-                                        color: Colors.black12, thickness: 1),
-                                  ),
-                              ],
-                            );
-                          }),
-
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 10),
-                            child: Divider(color: Colors.black12, thickness: 1),
-                          ),
-
-                          // Total
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Total',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 15),
-                              ),
-                              Text(
-                                'Rp ${_formatHarga(widget.totalHarga)}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: Color(0xFF339F16)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── 2. Metode Pembayaran ──
-                  _buildSectionTitle('Metode Pembayaran'),
-                  _buildCustomRadio(
+                  _buildSectionLabel('Metode Pembayaran'),
+                  _buildOptionCard(
                     title: 'Bayar Di Toko',
-                    iconWidget: const Icon(Icons.storefront_outlined,
-                        color: Colors.black87),
+                    icon: Icons.storefront_outlined,
                     value: 'Bayar Di Toko',
                     groupValue: _paymentMethod,
                     onChanged: (val) =>
                         setState(() => _paymentMethod = val),
                   ),
-                  const SizedBox(height: 12),
-                  _buildCustomRadio(
-                    title: 'Qris',
-                    iconWidget: const Icon(Icons.qr_code_scanner,
-                        color: Colors.black87),
+                  const SizedBox(height: 10),
+                  _buildOptionCard(
+                    title: 'QRIS',
+                    icon: Icons.qr_code_scanner_rounded,
                     value: 'Qris',
                     groupValue: _paymentMethod,
                     onChanged: (val) =>
                         setState(() => _paymentMethod = val),
                   ),
+                  const SizedBox(height: 20),
 
-                  const SizedBox(height: 24),
-
-                  // ── 3. Metode Ambil ──
-                  _buildSectionTitle('Metode Pengambilan'),
-                  _buildCustomRadio(
+                  _buildSectionLabel('Metode Pengambilan'),
+                  _buildOptionCard(
                     title: 'Ambil Di Toko',
-                    iconWidget: const Icon(Icons.storefront_outlined,
-                        color: Colors.black87),
+                    icon: Icons.storefront_outlined,
                     value: 'Ambil Di Toko',
                     groupValue: _deliveryMethod,
-                    trailingText: 'Gratis',
                     onChanged: (val) =>
                         setState(() => _deliveryMethod = val),
+                    badge: 'Gratis',
                   ),
+                  const SizedBox(height: 20),
 
-                  const SizedBox(height: 24),
-
-                  // ── 4. Konfirmasi Info ──
-                  _buildSectionTitle('Konfirmasi'),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEEF7ED),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: const BoxDecoration(
-                                color: Colors.white, shape: BoxShape.circle),
-                            child: const Icon(Icons.info_outline,
-                                color: Color(0xFF339F16), size: 24),
+                  // Info konfirmasi
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.successLight,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.inputBorder),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: AppColors.backgroundWhite,
+                            shape: BoxShape.circle,
                           ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Konfirmasi Pesanan',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15),
+                          child: const Icon(Icons.info_outline_rounded,
+                              color: AppColors.primaryGreen, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Informasi Penting',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: AppColors.textDark,
                                 ),
-                                SizedBox(height: 6),
-                                Text(
-                                  'Pastikan data pesanan sudah benar sebelum melanjutkan. Setelah dikonfirmasi, stok akan langsung dikurangi dan pesanan Anda akan diproses.',
-                                  style: TextStyle(
-                                      color: Colors.black54,
-                                      fontSize: 13,
-                                      height: 1.4),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Pastikan data pesanan sudah benar. Setelah dikonfirmasi, stok akan dikurangi dan pesanan diproses.',
+                                style: TextStyle(
+                                  color: AppColors.textMedium,
+                                  fontSize: 13,
+                                  height: 1.5,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-
                   const SizedBox(height: 32),
                 ],
               ),
             ),
           ),
 
-          // ── Bottom Tombol Pesan ──
+          // ── Bottom CTA ─────────────────────────────────────────────────
           Container(
-            color: Colors.white,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              MediaQuery.of(context).padding.bottom + 16,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.backgroundWhite,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, -4),
+                ),
+              ],
+            ),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Total Pembayaran",
+                    const Text('Total Pembayaran',
                         style: TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 14)),
+                            color: AppColors.textMedium, fontSize: 13)),
                     Text(
-                      "Rp ${_formatHarga(widget.totalHarga)}",
+                      'Rp ${_formatHarga(widget.totalHarga)}',
                       style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF339F16)),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primaryGreen,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
                     onPressed: _isProcessing ? null : _prosesCheckout,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF339F16),
+                      backgroundColor: AppColors.primaryGreen,
+                      disabledBackgroundColor:
+                          AppColors.primaryGreen.withOpacity(0.6),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30)),
+                          borderRadius: BorderRadius.circular(16)),
                       elevation: 0,
                     ),
                     child: _isProcessing
                         ? const SizedBox(
-                            height: 22,
                             width: 22,
+                            height: 22,
                             child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2.5),
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text(
-                            'Konfirmasi Pesanan',
+                            'Konfirmasi & Bayar',
                             style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Dengan menekan tombol ini, pesanan Anda akan diproses\ndan stok produk akan dikurangi.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: Colors.black45),
                 ),
               ],
             ),
@@ -362,114 +401,243 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  // ── Widget Helpers ─────────────────────────────────────────────────────────
+  // ── Helper builders ───────────────────────────────────────────────────────
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: Text(title,
-          style:
-              const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-    );
-  }
-
-  Widget _buildStep(int step, String label, bool isActive) {
-    return Column(
+  Widget _buildStepIndicator() {
+    return Row(
       children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: isActive ? const Color(0xFF339F16) : Colors.grey[300],
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text('$step',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold)),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(label,
-            style: TextStyle(
-                fontSize: 11,
-                color: isActive
-                    ? const Color(0xFF339F16)
-                    : Colors.grey[400],
-                fontWeight: isActive
-                    ? FontWeight.bold
-                    : FontWeight.normal)),
+        _buildStep('Keranjang', Icons.shopping_cart_outlined, true),
+        _buildStepLine(true),
+        _buildStep('Checkout', Icons.receipt_long_outlined, true),
+        _buildStepLine(false),
+        _buildStep('Selesai', Icons.check_circle_outline_rounded, false),
       ],
     );
   }
 
-  Widget _buildLine() {
-    return Container(
-      width: 20,
-      height: 1,
-      margin:
-          const EdgeInsets.only(bottom: 16, left: 8, right: 8),
-      color: Colors.grey[400],
+  Widget _buildStep(String label, IconData icon, bool active) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: active ? Colors.white : Colors.white.withOpacity(0.3),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 16,
+            color: active ? AppColors.primaryGreen : Colors.white,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: active ? Colors.white : Colors.white.withOpacity(0.6),
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _buildCustomRadio({
-    required String title,
-    required Widget iconWidget,
-    required String value,
-    required String? groupValue,
-    required Function(String) onChanged,
-    String? trailingText,
-  }) {
-    bool isSelected = value == groupValue;
+  Widget _buildStepLine(bool active) {
+    return Expanded(
+      child: Container(
+        height: 2,
+        margin: const EdgeInsets.only(bottom: 18),
+        color: active ? Colors.white : Colors.white.withOpacity(0.3),
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String label) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GestureDetector(
-        onTap: () => onChanged(value),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF339F16)
-                  : Colors.transparent,
-              width: 1.5,
-            ),
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 15,
+          color: AppColors.textDark,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrderSummaryCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: AppColors.cardShadow,
+      ),
+      child: Column(
+        children: [
+          ...widget.cartItems.asMap().entries.map((entry) {
+            final i = entry.key;
+            final item = entry.value;
+            final subtotal = double.tryParse(
+                      item['subtotal']?.toString() ?? '0',
+                    ) ??
+                (double.tryParse(item['harga']?.toString() ?? '0') ?? 0) *
+                    (int.tryParse(item['jumlah']?.toString() ?? '1') ?? 1);
+
+            return Column(
+              children: [
+                if (i > 0)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Divider(color: AppColors.divider, thickness: 1),
+                  ),
+                _buildSummaryItem(
+                  gambarUrl:
+                      '${ApiService.imageUrl}${item['gambar_produk']?.toString() ?? ''}',
+                  title: item['nama_produk']?.toString() ??
+                      item['name']?.toString() ??
+                      '-',
+                  subtext:
+                      'Rp ${_formatHarga(double.tryParse(item['harga']?.toString() ?? '0') ?? 0)} / item',
+                  qty: item['jumlah']?.toString() ?? '1',
+                  subtotal: subtotal,
+                ),
+              ],
+            );
+          }),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(color: AppColors.divider, thickness: 1),
           ),
-          child: Row(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(12)),
-                child: iconWidget,
+              const Text(
+                'Total',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: AppColors.textDark,
+                ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                  child: Text(title,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600))),
-              if (trailingText != null)
-                Text(trailingText,
-                    style: const TextStyle(
-                        color: Color(0xFF339F16),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14)),
-              const SizedBox(width: 12),
-              Icon(
-                isSelected ? Icons.check_circle : Icons.circle_outlined,
-                color: isSelected
-                    ? const Color(0xFF339F16)
-                    : Colors.grey[400],
-                size: 24,
+              Text(
+                'Rp ${_formatHarga(widget.totalHarga)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppColors.primaryGreen,
+                ),
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionCard({
+    required String title,
+    required IconData icon,
+    required String value,
+    required String? groupValue,
+    required Function(String) onChanged,
+    String? badge,
+  }) {
+    final bool isSelected = value == groupValue;
+    return GestureDetector(
+      onTap: () => onChanged(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundWhite,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.primaryGreen : AppColors.cardBorder,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow:
+              isSelected ? AppColors.greenShadow : AppColors.cardShadow,
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.successLight
+                    : AppColors.surfaceGrey,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: isSelected
+                    ? AppColors.primaryGreen
+                    : AppColors.textLight,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Row(
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? AppColors.textDark
+                          : AppColors.textMedium,
+                    ),
+                  ),
+                  if (badge != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.successLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        badge,
+                        style: const TextStyle(
+                          color: AppColors.primaryGreen,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primaryGreen
+                      : AppColors.textLight,
+                  width: 2,
+                ),
+                color: isSelected
+                    ? AppColors.primaryGreen
+                    : Colors.transparent,
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check_rounded,
+                      color: Colors.white, size: 13)
+                  : null,
+            ),
+          ],
         ),
       ),
     );
@@ -486,20 +654,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           child: Image.network(
             gambarUrl,
-            width: 54,
-            height: 54,
+            width: 58,
+            height: 58,
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              width: 54,
-              height: 54,
-              decoration: BoxDecoration(
-                  color: const Color(0xFFF0F0F0),
-                  borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.image_outlined,
-                  color: Colors.grey, size: 28),
+            errorBuilder: (_, __, ___) => Container(
+              width: 58,
+              height: 58,
+              color: AppColors.successLight,
+              child: const Icon(Icons.eco_rounded,
+                  color: AppColors.primaryGreen, size: 24),
             ),
           ),
         ),
@@ -508,36 +674,126 @@ class _CheckoutPageState extends State<CheckoutPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: AppColors.textDark,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
               const SizedBox(height: 3),
-              Text(subtext,
+              Text(
+                subtext,
+                style: const TextStyle(
+                    color: AppColors.textLight, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.successLight,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Qty: $qty',
                   style: const TextStyle(
-                      color: Colors.black54, fontSize: 12)),
-              const SizedBox(height: 3),
-              Row(
-                children: [
-                  const Text('Jumlah: ',
-                      style: TextStyle(
-                          color: Color(0xFF339F16),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12)),
-                  Text(qty,
-                      style: const TextStyle(
-                          color: Color(0xFF339F16),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12)),
-                ],
+                    color: AppColors.primaryGreen,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                ),
               ),
             ],
           ),
         ),
         Text(
           'Rp ${_formatHarga(subtotal)}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+            color: AppColors.textDark,
+          ),
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dialog preview struk + tombol simpan & lanjut
+// ─────────────────────────────────────────────────────────────────────────────
+class _ReceiptSavingDialog extends StatefulWidget {
+  final Widget receiptWidget;
+  final VoidCallback onSaveAndContinue;
+
+  const _ReceiptSavingDialog({
+    required this.receiptWidget,
+    required this.onSaveAndContinue,
+  });
+
+  @override
+  State<_ReceiptSavingDialog> createState() => _ReceiptSavingDialogState();
+}
+
+class _ReceiptSavingDialogState extends State<_ReceiptSavingDialog> {
+  bool _saving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Struk preview ──────────────────────────────────────────────
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: SingleChildScrollView(
+              child: widget.receiptWidget,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // ── Tombol simpan & lanjut ─────────────────────────────────────
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: _saving
+                  ? null
+                  : () {
+                      setState(() => _saving = true);
+                      widget.onSaveAndContinue();
+                    },
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.save_alt_rounded, size: 20),
+              label: Text(
+                _saving ? 'Menyimpan struk...' : 'Simpan Struk & Lanjut',
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF339F16),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
