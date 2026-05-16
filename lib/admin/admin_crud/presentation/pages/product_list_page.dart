@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-
 import 'product_edit_page.dart';
 import 'product_create_page.dart';
-
 import 'package:flutter_application_mbahmeth/widgets/widgetsadmin/product_card.dart';
 import 'package:flutter_application_mbahmeth/models/modelsadmin/product_model.dart';
 import 'package:flutter_application_mbahmeth/services/api_service.dart';
@@ -16,26 +14,18 @@ class ProductListPage extends StatefulWidget {
 
 class _ProductListPageState extends State<ProductListPage>
     with SingleTickerProviderStateMixin {
-
   final ApiService _service = ApiService();
-
   List<ProductModel> _allProducts = [];
   List<ProductModel> _filteredProducts = [];
-
   String _searchQuery = "";
-
   late TabController _tabController;
-
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-
     _tabController = TabController(length: 3, vsync: this);
-
     _tabController.addListener(_handleTabSelection);
-
     _loadData();
   }
 
@@ -117,15 +107,12 @@ class _ProductListPageState extends State<ProductListPage>
 
                 Row(
                   children: [
-
                     CircleAvatar(
                       backgroundColor: Colors.white,
                       radius: 20,
-
                       child: Image.asset(
                         'assets/images/logo.png',
                         height: 25,
-
                         errorBuilder: (c, e, s) {
                           return const Icon(Icons.shop);
                         },
@@ -133,11 +120,9 @@ class _ProductListPageState extends State<ProductListPage>
                     ),
 
                     const SizedBox(width: 12),
-
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
                         Text(
                           "MbahMeth",
                           style: TextStyle(
@@ -160,13 +145,11 @@ class _ProductListPageState extends State<ProductListPage>
                 ),
 
                 const SizedBox(height: 20),
-
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(25),
                   ),
-
                   child: TextField(
                     onChanged: (val) {
                       _searchQuery = val;
@@ -233,21 +216,15 @@ class _ProductListPageState extends State<ProductListPage>
 
                     : RefreshIndicator(
                         onRefresh: _loadData,
-
                         child: ListView.builder(
                           padding: const EdgeInsets.all(20),
-
                           itemCount: _filteredProducts.length,
-
                           itemBuilder: (context, index) {
-
                             final produk = _filteredProducts[index];
-
                             return ProductCard(
                               name: produk.name,
                               price: "Rp ${produk.price}",
                               stock: produk.stock,
-
                               imageUrl:
                                   "${ApiService.imageUrl}${produk.imagePath}",
 
@@ -271,33 +248,24 @@ class _ProductListPageState extends State<ProductListPage>
                               onDelete: () {
                                 showDialog(
                                   context: context,
-
                                   builder: (context) {
                                     return AlertDialog(
-
                                       title: const Text(
                                         "Hapus Produk",
                                       ),
-
                                       content: const Text(
                                         "Apakah Anda yakin ingin menghapus produk ini?",
                                       ),
-
                                       actions: [
-
                                         TextButton(
                                           onPressed: () {
                                             Navigator.pop(context);
                                           },
-
                                           child: const Text("Batal"),
                                         ),
-
                                         TextButton(
                                           onPressed: () async {
-
                                             Navigator.pop(context);
-
                                             bool success =
                                                 await ApiService()
                                                     .deleteProduct(
@@ -305,9 +273,7 @@ class _ProductListPageState extends State<ProductListPage>
                                             );
 
                                             if (success) {
-
                                               _loadData();
-
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(
                                                 const SnackBar(

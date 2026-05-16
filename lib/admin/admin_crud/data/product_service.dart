@@ -5,8 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 class ProductService {
-  // Alamat API 
-  final String _baseUrl = "http://172.16.115.174/api_pertanian/produk";
+  // Alamat API
+  final String _baseUrl = "http://192.168.1.53/toko_mbahmeth/api/";
 
   // --- 1. TAMBAH PRODUK ---
   Future<bool> addProduct(ProductModel product, XFile? imageFile) async {
@@ -26,11 +26,13 @@ class ProductService {
       // Penanganan Gambar (Key: 'image_file' sesuai revisi create.php sebelumnya)
       if (imageFile != null) {
         var bytes = await imageFile.readAsBytes();
-        request.files.add(http.MultipartFile.fromBytes(
-          'image_file', // Key ini harus SAMA dengan $_FILES di PHP
-          bytes,
-          filename: imageFile.name,
-        ));
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image_file', // Key ini harus SAMA dengan $_FILES di PHP
+            bytes,
+            filename: imageFile.name,
+          ),
+        );
       }
 
       var streamedResponse = await request.send();
@@ -51,7 +53,7 @@ class ProductService {
   Future<List<ProductModel>> getProducts() async {
     try {
       final response = await http.get(Uri.parse("$_baseUrl/read.php"));
-      
+
       if (response.statusCode == 200) {
         List jsonResponse = json.decode(response.body);
         return jsonResponse.map((data) => ProductModel.fromJson(data)).toList();
@@ -81,11 +83,13 @@ class ProductService {
 
       if (imageFile != null) {
         var bytes = await imageFile.readAsBytes();
-        request.files.add(http.MultipartFile.fromBytes(
-          'image_file',
-          bytes,
-          filename: imageFile.name,
-        ));
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image_file',
+            bytes,
+            filename: imageFile.name,
+          ),
+        );
       }
 
       var streamedResponse = await request.send();
@@ -106,9 +110,7 @@ class ProductService {
   Future<bool> deleteProduct(int id) async {
     try {
       // Menggunakan query parameter ?id= agar lebih mudah ditangkap PHP
-      final response = await http.get(
-        Uri.parse("$_baseUrl/delete.php?id=$id"),
-      );
+      final response = await http.get(Uri.parse("$_baseUrl/delete.php?id=$id"));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

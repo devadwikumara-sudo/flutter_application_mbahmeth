@@ -3,9 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_application_mbahmeth/core/config/app_config.dart';
-import '../models/modelsadmin/product_model.dart'; 
+import '../models/modelsadmin/product_model.dart';
 import '../models/modelsadmin/order_model.dart';
-
 
 class ApiService {
   static const String adminUrl = "${AppConfig.baseUrl}/admin";
@@ -113,10 +112,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse("$customerUrl/update_cart_item.php"),
-        body: {
-          'id_detail': idDetail.toString(),
-          'jumlah': jumlah.toString(),
-        },
+        body: {'id_detail': idDetail.toString(), 'jumlah': jumlah.toString()},
       );
       if (response.statusCode == 200) {
         final result = json.decode(response.body);
@@ -204,15 +200,15 @@ class ApiService {
       throw Exception('Gagal mengambil data pesanan: $e');
     }
   }
- // ===================== BAGIAN ADMIN (PRODUK) =====================
+  // ===================== BAGIAN ADMIN (PRODUK) =====================
 
   // Ambil semua produk (Gunakan ini di ProductListPage)
   Future<List<ProductModel>> getAdminProducts() async {
     try {
-      final response = await http.get(Uri.parse("$adminUrl/produk/read.php"));
-      
+      final response = await http.get(Uri.parse("$adminUrl/read.php"));
+
       print("Fetch Produk Status: ${response.statusCode}");
-      
+
       if (response.statusCode == 200) {
         List jsonResponse = json.decode(response.body);
         return jsonResponse.map((data) => ProductModel.fromJson(data)).toList();
@@ -229,9 +225,9 @@ class ApiService {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse("$adminUrl/produk/create.php"),
+        Uri.parse("$adminUrl/create.php"),
       );
-      
+
       // Nama field ini harus sama dengan $_POST di PHP
       request.fields['name'] = product.name;
       request.fields['price'] = product.price.toString();
@@ -253,9 +249,9 @@ class ApiService {
 
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
-      
+
       print("Response simpan: ${response.body}");
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return data['success'] == true;
@@ -268,58 +264,60 @@ class ApiService {
   }
 
   Future<bool> updateProduct(ProductModel product, XFile? imageFile) async {
-  try {
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse("$adminUrl/produk/update.php"), // Pastikan ke update.php
-    );
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse("$adminUrl/update.php"), // Pastikan ke update.php
+      );
 
-    // Kirim ID agar database tahu mana yang mau di-update
-    request.fields['id_product'] = product.id.toString(); 
-    request.fields['name'] = product.name;
-    request.fields['price'] = product.price.toString();
-    request.fields['stock'] = product.stock.toString();
-    request.fields['description'] = product.description ?? '';
+      // Kirim ID agar database tahu mana yang mau di-update
+      request.fields['id_product'] = product.id.toString();
+      request.fields['name'] = product.name;
+      request.fields['price'] = product.price.toString();
+      request.fields['stock'] = product.stock.toString();
+      request.fields['description'] = product.description ?? '';
 
-    if (imageFile != null) {
-      Uint8List bytes = await imageFile.readAsBytes();
-      request.files.add(http.MultipartFile.fromBytes(
-        'image_file',
-        bytes,
-        filename: imageFile.name,
-      ));
+      if (imageFile != null) {
+        Uint8List bytes = await imageFile.readAsBytes();
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'image_file',
+            bytes,
+            filename: imageFile.name,
+          ),
+        );
+      }
+
+      var response = await http.Response.fromStream(await request.send());
+      return jsonDecode(response.body)['success'] == true;
+    } catch (e) {
+      return false;
     }
-
-    var response = await http.Response.fromStream(await request.send());
-    return jsonDecode(response.body)['success'] == true;
-  } catch (e) {
-    return false;
   }
-}
 
-Future<bool> deleteProduct(String idProduct) async {
-  try {
-    final response = await http.post(
-      Uri.parse("$adminUrl/produk/delete.php"),
-      body: {'id_product': idProduct},
-    );
+  Future<bool> deleteProduct(String idProduct) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$adminUrl/delete.php"),
+        body: {'id_product': idProduct},
+      );
 
-    if (response.statusCode == 200) {
-      final result = json.decode(response.body);
-      return result['success'] == true;
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        return result['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      print("Error Delete: $e");
+      return false;
     }
-    return false;
-  } catch (e) {
-    print("Error Delete: $e");
-    return false;
   }
-}
   // ===================== BAGIAN ADMIN (ORDERS) =====================
 
   Future<List<OrderModel>> getOrders() async {
     try {
       final response = await http.get(Uri.parse("$adminUrl/orders/read.php"));
-      
+
       if (response.statusCode == 200) {
         List jsonResponse = json.decode(response.body);
         return jsonResponse.map((data) => OrderModel.fromJson(data)).toList();
@@ -332,24 +330,24 @@ Future<bool> deleteProduct(String idProduct) async {
   }
 
   // Tambahkan fungsi ini di dalam class ApiService
-Future<List<OrderModel>> getOrdersByStatus(String status) async {
-  try {
-    // Kita arahkan ke read_orders.php dengan parameter status
-    final response = await http.get(
-      Uri.parse("$adminUrl/read_orders.php?status=$status"),
-    );
+  Future<List<OrderModel>> getOrdersByStatus(String status) async {
+    try {
+      // Kita arahkan ke read_orders.php dengan parameter status
+      final response = await http.get(
+        Uri.parse("$adminUrl/read_orders.php?status=$status"),
+      );
 
-    print("Fetch Filter Status: ${response.statusCode}");
-    print("Response Body: ${response.body}");
+      print("Fetch Filter Status: ${response.statusCode}");
+      print("Response Body: ${response.body}");
 
-    if (response.statusCode == 200) {
-      List jsonResponse = json.decode(response.body);
-      return jsonResponse.map((data) => OrderModel.fromJson(data)).toList();
+      if (response.statusCode == 200) {
+        List jsonResponse = json.decode(response.body);
+        return jsonResponse.map((data) => OrderModel.fromJson(data)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Error getOrdersByStatus: $e");
+      return [];
     }
-    return [];
-  } catch (e) {
-    print("Error getOrdersByStatus: $e");
-    return [];
   }
-}
 }

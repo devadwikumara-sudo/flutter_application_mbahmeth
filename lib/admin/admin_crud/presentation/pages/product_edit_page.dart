@@ -27,10 +27,10 @@ class _ProductEditPageState extends State<ProductEditPage> {
   // Variabel untuk menangani perubahan foto
   XFile? _newImageFile;
   final ImagePicker _picker = ImagePicker();
-  
+
   // URL Server
   final String imageServerBase =
-      "http://localhost/TOKO_MBAHMETH/api/public/assets/products/";
+      "http://192.168.1.53/toko_mbahmeth/public/assets/product/";
 
   @override
   void initState() {
@@ -50,7 +50,7 @@ class _ProductEditPageState extends State<ProductEditPage> {
     if (validCategories.contains(widget.product.category)) {
       _selectedCategory = widget.product.category;
     } else {
-      _selectedCategory = null; 
+      _selectedCategory = null;
     }
   }
 
@@ -167,9 +167,13 @@ class _ProductEditPageState extends State<ProductEditPage> {
                     name: nameController.text,
                     price: int.tryParse(priceController.text) ?? 0,
                     stock: int.tryParse(stockController.text) ?? 0,
-                    category: _selectedCategory ?? '', // Menggunakan value dari dropdown
+                    category:
+                        _selectedCategory ??
+                        '', // Menggunakan value dari dropdown
                     description: descController.text,
-                    imagePath: widget.product.imagePath, // Tetap kirim path lama sebagai cadangan
+                    imagePath: widget
+                        .product
+                        .imagePath, // Tetap kirim path lama sebagai cadangan
                   );
 
                   // 2. Panggil service dengan fungsi UPDATE PRODUCT
@@ -185,7 +189,10 @@ class _ProductEditPageState extends State<ProductEditPage> {
                         content: Text("Produk berhasil diperbarui!"),
                       ),
                     );
-                    Navigator.pop(context, true); // Kembali dan beri sinyal sukses
+                    Navigator.pop(
+                      context,
+                      true,
+                    ); // Kembali dan beri sinyal sukses
                   } else {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
