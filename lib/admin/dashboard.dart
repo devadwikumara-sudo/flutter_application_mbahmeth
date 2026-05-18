@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_application_mbahmeth/admin/admin_crud/presentation/pages/product_list_page.dart';
-import 'package:flutter_application_mbahmeth/admin/admin_orders/presentation/pages/order_list_page.dart';
+import 'package:flutter_application_mbahmeth/admin/order_list_page.dart';
 import 'package:flutter_application_mbahmeth/admin/profil_admin.dart';
 import 'package:flutter_application_mbahmeth/core/config/app_config.dart';
 import 'users_semua.dart';
