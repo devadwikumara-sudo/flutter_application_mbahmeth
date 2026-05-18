@@ -25,7 +25,7 @@ class ApiService {
     }
   }
 
-  // ── 2. Ambil Produk per Kategori ──────────────────────────────────────────
+  // ── 2. Ambil Produk per Kategori (Customer) ───────────────────────────────
   Future<List<dynamic>> getProducts(int idCategory) async {
     try {
       final response = await http.get(
@@ -33,9 +33,7 @@ class ApiService {
       );
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-        // get_products.php mengembalikan list langsung
         if (decoded is List) return decoded;
-        // Jika ternyata ada wrapper status error
         return [];
       }
       throw Exception('Gagal mengambil data produk');
@@ -182,10 +180,9 @@ class ApiService {
     }
   }
 
-  // ── 10. Ambil Semua Order (Keranjang & History) ──────────────────────────
+  // ── 10. Ambil Semua Order (Keranjang & History) ───────────────────────────
   Future<List<dynamic>> getOrdersByUser(int userId) async {
     try {
-      // Pastikan file php ini tersedia di backend Anda
       final response = await http.get(
         Uri.parse("$customerUrl/get_orders_by_user.php?id_user=$userId"),
       );
@@ -200,14 +197,51 @@ class ApiService {
       throw Exception('Gagal mengambil data pesanan: $e');
     }
   }
+
+  // ── 11. Upload Foto Profil ────────────────────────────────────────────────
+  Future<String?> uploadFotoProfil({
+    required int userId,
+    required String filePath,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse("$customerUrl/upload_foto_profil.php"),
+      );
+
+      request.fields['id_user'] = userId.toString();
+      request.files.add(
+        await http.MultipartFile.fromPath('foto', filePath),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      debugPrint("Upload foto status : ${response.statusCode}");
+      debugPrint("Upload foto body   : ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          return data['foto_url'] as String?;
+        }
+        debugPrint("Upload foto gagal: ${data['message']}");
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error uploadFotoProfil: $e");
+      return null;
+    }
+  }
+
   // ===================== BAGIAN ADMIN (PRODUK) =====================
 
-  // Ambil semua produk (Gunakan ini di ProductListPage)
+  // ── 12. Ambil Semua Produk (Admin) ────────────────────────────────────────
   Future<List<ProductModel>> getAdminProducts() async {
     try {
       final response = await http.get(Uri.parse("$adminUrl/read.php"));
 
-      print("Fetch Produk Status: ${response.statusCode}");
+      debugPrint("Fetch Produk Status: ${response.statusCode}");
 
       if (response.statusCode == 200) {
         List jsonResponse = json.decode(response.body);
@@ -215,12 +249,12 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print("Error Fetch Produk: $e");
+      debugPrint("Error Fetch Produk: $e");
       return [];
     }
   }
 
-  // Tambah produk baru (Gunakan ini di ProductCreatePage)
+  // ── 13. Tambah Produk Baru (Admin) ────────────────────────────────────────
   Future<bool> addProduct(ProductModel product, XFile? imageFile) async {
     try {
       var request = http.MultipartRequest(
@@ -228,20 +262,17 @@ class ApiService {
         Uri.parse("$adminUrl/create.php"),
       );
 
-      // Nama field ini harus sama dengan $_POST di PHP
       request.fields['name'] = product.name;
       request.fields['price'] = product.price.toString();
       request.fields['stock'] = product.stock.toString();
       request.fields['category'] = product.category ?? '';
       request.fields['description'] = product.description ?? '';
-      request.fields['category'] = product.category ?? '';
 
       if (imageFile != null) {
-        // Handle bytes untuk Flutter Web
         Uint8List bytes = await imageFile.readAsBytes();
         request.files.add(
           http.MultipartFile.fromBytes(
-            'image_file', // Harus sama dengan $_FILES['image_file'] di PHP
+            'image_file',
             bytes,
             filename: imageFile.name,
           ),
@@ -251,7 +282,7 @@ class ApiService {
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
-      print("Response simpan: ${response.body}");
+      debugPrint("Response simpan: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -259,19 +290,19 @@ class ApiService {
       }
       return false;
     } catch (e) {
-      print("Error addProduct: $e");
+      debugPrint("Error addProduct: $e");
       return false;
     }
   }
 
+  // ── 14. Update Produk (Admin) ─────────────────────────────────────────────
   Future<bool> updateProduct(ProductModel product, XFile? imageFile) async {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse("$adminUrl/update.php"), // Pastikan ke update.php
+        Uri.parse("$adminUrl/update.php"),
       );
 
-      // Kirim ID agar database tahu mana yang mau di-update
       request.fields['id_product'] = product.id.toString();
       request.fields['name'] = product.name;
       request.fields['price'] = product.price.toString();
@@ -291,14 +322,15 @@ class ApiService {
       }
 
       var response = await http.Response.fromStream(await request.send());
-      print("RESPONSE UPDATE: ${response.body}"); // <-- Tambahkan baris ini
+      debugPrint("RESPONSE UPDATE: ${response.body}");
       return jsonDecode(response.body)['success'] == true;
     } catch (e) {
-      print("ERROR CATCH UPDATE: $e"); // <-- Tambahkan baris ini
+      debugPrint("ERROR CATCH UPDATE: $e");
       return false;
     }
   }
 
+  // ── 15. Hapus Produk (Admin) ──────────────────────────────────────────────
   Future<bool> deleteProduct(String idProduct) async {
     try {
       final response = await http.post(
@@ -312,12 +344,14 @@ class ApiService {
       }
       return false;
     } catch (e) {
-      print("Error Delete: $e");
+      debugPrint("Error Delete: $e");
       return false;
     }
   }
+
   // ===================== BAGIAN ADMIN (ORDERS) =====================
 
+  // ── 16. Ambil Semua Order (Admin) ─────────────────────────────────────────
   Future<List<OrderModel>> getOrders() async {
     try {
       final response = await http.get(Uri.parse("$adminUrl/orders/read.php"));
@@ -328,21 +362,20 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print("Error Fetch Orders: $e");
+      debugPrint("Error Fetch Orders: $e");
       return [];
     }
   }
 
-  // Tambahkan fungsi ini di dalam class ApiService
+  // ── 17. Ambil Order berdasarkan Status (Admin) ────────────────────────────
   Future<List<OrderModel>> getOrdersByStatus(String status) async {
     try {
-      // Kita arahkan ke read_orders.php dengan parameter status
       final response = await http.get(
         Uri.parse("$adminUrl/read_orders.php?status=$status"),
       );
 
-      print("Fetch Filter Status: ${response.statusCode}");
-      print("Response Body: ${response.body}");
+      debugPrint("Fetch Filter Status: ${response.statusCode}");
+      debugPrint("Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         List jsonResponse = json.decode(response.body);
@@ -350,8 +383,23 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print("Error getOrdersByStatus: $e");
+      debugPrint("Error getOrdersByStatus: $e");
       return [];
+    }
+  }
+  
+  // ── 18. Ambil Data Profil Dinamis (FUNGSI BARU COCOK DENGAN PHP ANDA) ───
+  Future<Map<String, dynamic>> getAdminProfil(String idUser) async {
+    try {
+      final response = await http.get(
+        Uri.parse("$customerUrl/get_profil.php?id_user=$idUser"),
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {'success': false, 'message': 'Gagal memuat data server'};
+    } catch (e) {
+      return {'success': false, 'message': e.toString()};
     }
   }
 }

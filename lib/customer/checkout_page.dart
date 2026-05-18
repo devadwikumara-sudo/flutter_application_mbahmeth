@@ -663,7 +663,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             width: 58,
             height: 58,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
+            errorBuilder: (_, _, _) => Container(
               width: 58,
               height: 58,
               color: AppColors.successLight,
