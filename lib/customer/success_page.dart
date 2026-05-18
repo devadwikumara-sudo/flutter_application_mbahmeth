@@ -25,7 +25,9 @@ class SuccessPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
       backgroundColor: Colors.white,
       body: Column(
         children: [
@@ -237,7 +239,8 @@ class SuccessPage extends StatelessWidget {
           ),
         ],
       ),
-    );
+      ), // end Scaffold
+    ); // end PopScope
   }
 }
 

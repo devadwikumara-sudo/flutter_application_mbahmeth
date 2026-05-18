@@ -168,7 +168,9 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: NestedScrollView(
         headerSliverBuilder: (ctx, inner) => [
@@ -246,7 +248,8 @@ class _HistoryScreenState extends State<HistoryScreen>
         ],
         body: _buildBody(),
       ),
-    );
+      ), // end Scaffold
+    ); // end PopScope
   }
 
   Widget _buildBody() {

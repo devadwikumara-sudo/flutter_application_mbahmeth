@@ -111,7 +111,9 @@ class _DetailScreenState extends State<DetailScreen> {
         double.tryParse(product['harga']?.toString() ?? '0') ?? 0;
     final double totalHarga = harga * jumlah;
 
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: Column(
         children: [
@@ -407,7 +409,8 @@ class _DetailScreenState extends State<DetailScreen> {
           ),
         ],
       ),
-    );
+    ), // end Scaffold
+    ); // end PopScope
   }
 
   Widget _circleButton({required IconData icon, required VoidCallback onTap}) {

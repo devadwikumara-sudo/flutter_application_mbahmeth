@@ -181,7 +181,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   // ─────────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: Column(
         children: [
@@ -398,7 +400,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ),
         ],
       ),
-    );
+      ), // end Scaffold
+    ); // end PopScope
   }
 
   // ── Helper builders ───────────────────────────────────────────────────────

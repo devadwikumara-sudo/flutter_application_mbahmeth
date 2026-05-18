@@ -61,7 +61,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      child: Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: Column(
         children: [
@@ -122,10 +124,11 @@ class _CatalogScreenState extends State<CatalogScreen> {
           ),
 
           // ── Body ──
-          Expanded(child: _buildBody()),
-        ],
-      ),
-    );
+            Expanded(child: _buildBody()),
+          ],
+        ),
+      ), // end Scaffold
+    ); // end PopScope
   }
 
   Widget _buildBody() {
