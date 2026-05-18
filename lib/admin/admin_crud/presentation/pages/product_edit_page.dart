@@ -15,6 +15,13 @@ class ProductEditPage extends StatefulWidget {
 class _ProductEditPageState extends State<ProductEditPage> {
   final Color primaryGreen = const Color(0xFF2E9900);
 
+final Map<String, String> categoryMapping = {
+  'Pupuk': '1', // Ganti angka ini sesuai ID di database kamu
+  'Benih': '2',
+  'Alat': '3',
+  'Obat': '4',
+};
+
   // Controller untuk input teks (categoryController sudah dihapus)
   late TextEditingController nameController;
   late TextEditingController priceController;
@@ -30,7 +37,7 @@ class _ProductEditPageState extends State<ProductEditPage> {
 
   // URL Server
   final String imageServerBase =
-      "http://192.168.1.53/toko_mbahmeth/public/assets/product/";
+      "http://172.16.106.122/toko_mbahmeth/public/assets/products/";
 
   @override
   void initState() {
@@ -163,18 +170,15 @@ class _ProductEditPageState extends State<ProductEditPage> {
                 onPressed: () async {
                   // 1. Siapkan objek produk yang sudah diupdate
                   final updatedData = ProductModel(
-                    id: widget.product.id, // Pastikan id terkirim
+                    id: widget.product.id,
                     name: nameController.text,
                     price: int.tryParse(priceController.text) ?? 0,
                     stock: int.tryParse(stockController.text) ?? 0,
-                    category:
-                        _selectedCategory ??
-                        '', // Menggunakan value dari dropdown
+  // GUNAKAN MAPPING DI SINI:
+                    category: categoryMapping[_selectedCategory] ?? '', 
                     description: descController.text,
-                    imagePath: widget
-                        .product
-                        .imagePath, // Tetap kirim path lama sebagai cadangan
-                  );
+                    imagePath: widget.product.imagePath,
+                );
 
                   // 2. Panggil service dengan fungsi UPDATE PRODUCT
                   // Ini penting agar data tidak terduplikat
