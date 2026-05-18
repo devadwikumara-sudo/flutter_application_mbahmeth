@@ -265,7 +265,7 @@ class ApiService {
       request.fields['name'] = product.name;
       request.fields['price'] = product.price.toString();
       request.fields['stock'] = product.stock.toString();
-      request.fields['category'] = product.category ?? '';
+      request.fields['category'] = product.category ?? '1';
       request.fields['description'] = product.description ?? '';
 
       if (imageFile != null) {

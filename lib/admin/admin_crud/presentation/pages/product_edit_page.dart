@@ -37,7 +37,7 @@ final Map<String, String> categoryMapping = {
 
   // URL Server
   final String imageServerBase =
-      "http://172.16.106.122/toko_mbahmeth/public/assets/products/";
+      "http://192.168.1.41/toko_mbahmeth/public/assets/products/";
 
   @override
   void initState() {
