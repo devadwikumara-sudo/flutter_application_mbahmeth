@@ -402,4 +402,40 @@ class ApiService {
       return {'success': false, 'message': e.toString()};
     }
   }
+
+  //fungsi mengambil tampilan semua order
+Future<List<OrderModel>> getAllOrders() async {
+  try {
+    final response = await http.get(Uri.parse("$adminUrl/get_orders.php"));
+    
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = jsonDecode(response.body);
+      if (data['success'] == true) {
+        List list = data['data'];
+        return list.map((e) => OrderModel.fromJson(e)).toList();
+      }
+    }
+    return [];
+  } catch (e) {
+    print("Error getAllOrders: $e");
+    return [];
+  }
+}
+
+  Future<List<OrderModel>> fetchAllOrders() async {
+  try {
+    final response = await http.get(Uri.parse("$adminUrl/get_orders.php"));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['success'] == true) {
+        List list = data['data'];
+        return list.map((e) => OrderModel.fromJson(e)).toList();
+      }
+    }
+    return [];
+  } catch (e) {
+    debugPrint("Error Fetch Orders: $e");
+    return [];
+  }
+}
 }

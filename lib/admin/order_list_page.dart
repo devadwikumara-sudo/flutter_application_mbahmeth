@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../services/api_service.dart';
+import '../../../models/modelsadmin/order_model.dart';
 
 class OrderListPage extends StatefulWidget {
   const OrderListPage({super.key});
@@ -9,48 +11,45 @@ class OrderListPage extends StatefulWidget {
 
 class _OrderListPageState extends State<OrderListPage> {
   String _activeTab = "Tertunda";
+  List<OrderModel> _allOrders = [];
+  bool _isLoading = true;
 
-  // Perbaikan Data dummy: Gunakan String Path saja untuk gambar
-  final List<Map<String, dynamic>> _allOrders = [
-    {
-      "id": "Insekti-200ec-001",
-      "customer": "Purbaya",
-      "price": "18.000",
-      "time": "2 menit lalu",
-      "status": "Tertunda",
-      "img": "https://via.placeholder.com/100" // Ini URL
-    },
-    {
-      "id": "Pupuk-KNO M-002",
-      "customer": "Bahlil",
-      "price": "18.250",
-      "time": "15 menit lalu",
-      "status": "Tertunda",
-      "img": "assets/images/kno_merah.png", // Ini Path Local
-    },
-    {
-      "id": "Bibit-Perkasa-003",
-      "customer": "Kaesang",
-      "price": "64.000",
-      "time": "42 menit lalu",
-      "status": "Tertunda",
-      "img": "https://via.placeholder.com/100"
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  // Fungsi untuk mengambil data dari API
+  Future<void> _loadOrders() async {
+    setState(() => _isLoading = true);
+    try {
+      // Pastikan fungsi ini sudah kamu buat di ApiService
+      final data = await ApiService().fetchAllOrders(); 
+      setState(() {
+        _allOrders = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      debugPrint("Error load orders: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    List<Map<String, dynamic>> filteredOrders = 
-        _allOrders.where((o) => o['status'] == _activeTab).toList();
+    // Memfilter list berdasarkan tab yang aktif
+    List<OrderModel> filteredOrders = 
+        _allOrders.where((o) => o.status.toLowerCase() == _activeTab.toLowerCase()).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
       body: Column(
         children: [
-          // HEADER HIJAU DENGAN TOMBOL BACK
+          // HEADER HIJAU
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(10, 40, 20, 20), // Sesuaikan padding atas untuk status bar
+            padding: const EdgeInsets.fromLTRB(10, 40, 20, 20),
             decoration: const BoxDecoration(
               color: Color(0xFF2E9900),
             ),
@@ -58,21 +57,26 @@ class _OrderListPageState extends State<OrderListPage> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context), // Biar bisa balik ke Dashboard
+                  onPressed: () => Navigator.pop(context),
                 ),
                 const CircleAvatar(
                   backgroundColor: Colors.white,
                   child: Icon(Icons.eco, color: Color(0xFF2E9900)),
                 ),
                 const SizedBox(width: 12),
-                Column(
+                const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text("MbahMeth", 
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                     Text("Portal Admin", 
                       style: TextStyle(color: Colors.white70, fontSize: 12)),
                   ],
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  onPressed: _loadOrders, // Tombol refresh data
                 ),
               ],
             ),
@@ -84,28 +88,43 @@ class _OrderListPageState extends State<OrderListPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildTabItem("Tertunda", "${_allOrders.where((o) => o['status'] == "Tertunda").length}"),
-                _buildTabItem("Pengolahan", "0"),
-                _buildTabItem("Selesai", "0"),
+                _buildTabItem("Tertunda", _countStatus("Tertunda")),
+                _buildTabItem("Pengolahan", _countStatus("Pengolahan")),
+                _buildTabItem("Selesai", _countStatus("Selesai")),
               ],
             ),
           ),
 
           // LIST PESANAN
           Expanded(
-            child: filteredOrders.isEmpty 
-              ? const Center(child: Text("Belum ada pesanan"))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(15),
-                  itemCount: filteredOrders.length,
-                  itemBuilder: (context, index) {
-                    return _buildOrderCard(filteredOrders[index]);
-                  },
-                ),
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator(color: Color(0xFF2E9900)))
+              : filteredOrders.isEmpty 
+                ? Center(child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.assignment_late_outlined, size: 50, color: Colors.grey[400]),
+                      const SizedBox(height: 10),
+                      Text("Belum ada pesanan di tab $_activeTab", style: const TextStyle(color: Colors.grey)),
+                    ],
+                  ))
+                : ListView.builder(
+                    padding: const EdgeInsets.all(15),
+                    itemCount: filteredOrders.length,
+                    itemBuilder: (context, index) {
+                      return _buildOrderCard(filteredOrders[index]);
+                    },
+                  ),
           ),
         ],
       ),
     );
+  }
+
+  // Helper untuk menghitung jumlah pesanan per status
+  String _countStatus(String status) {
+    int count = _allOrders.where((o) => o.status.toLowerCase() == status.toLowerCase()).length;
+    return count.toString();
   }
 
   Widget _buildTabItem(String title, String count) {
@@ -146,9 +165,10 @@ class _OrderListPageState extends State<OrderListPage> {
     );
   }
 
-  Widget _buildOrderCard(Map<String, dynamic> data) {
+  Widget _buildOrderCard(OrderModel order) {
     Color statusColor = _activeTab == "Tertunda" ? Colors.red : 
                         (_activeTab == "Pengolahan" ? Colors.orange : Colors.green);
+    
     String btnLabel = _activeTab == "Tertunda" ? "Menerima" : "Siap";
 
     return Container(
@@ -175,25 +195,25 @@ class _OrderListPageState extends State<OrderListPage> {
                         color: statusColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(data['status'].toUpperCase(), 
+                      child: Text(order.status.toUpperCase(), 
                         style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
                     ),
-                    Text(data['time'], style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                    Text(order.dateOrdered, style: const TextStyle(color: Colors.grey, fontSize: 11)),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text("Order #${data['id']}", 
+                Text("Order #${order.idOrder}", 
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                Text("Pelanggan : ${data['customer']}", 
+                Text("Pelanggan : ${order.customerName}", 
                   style: const TextStyle(color: Colors.grey, fontSize: 13)),
                 const SizedBox(height: 10),
                 Row(
                   children: [
                     const Icon(Icons.payments_outlined, color: Colors.green, size: 18),
                     const SizedBox(width: 5),
-                    Text("Rp. ${data['price']}", 
+                    Text("Rp ${order.totalPrice}", 
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   ],
                 ),
@@ -203,7 +223,9 @@ class _OrderListPageState extends State<OrderListPage> {
                   children: [
                     if (_activeTab != "Selesai")
                       ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          // TODO: Implementasi Update Status ke DB
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2E9900),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -211,7 +233,9 @@ class _OrderListPageState extends State<OrderListPage> {
                         child: Text(btnLabel, style: const TextStyle(color: Colors.white)),
                       ),
                     OutlinedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Aksi lihat detail
+                      },
                       style: OutlinedButton.styleFrom(
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
@@ -223,7 +247,7 @@ class _OrderListPageState extends State<OrderListPage> {
             ),
           ),
           const SizedBox(width: 12),
-          // LOGIKA TAMPILAN GAMBAR (Penting!)
+          // Gambar Placeholder karena di tabel order biasanya tidak ada gambar produk langsung
           Container(
             width: 80,
             height: 100,
@@ -231,13 +255,7 @@ class _OrderListPageState extends State<OrderListPage> {
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(15),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(15),
-              child: data['img'].toString().startsWith('assets') 
-                ? Image.asset(data['img'], fit: BoxFit.cover)
-                : Image.network(data['img'], fit: BoxFit.cover, 
-                    errorBuilder: (c, e, s) => const Icon(Icons.inventory_2, color: Colors.grey, size: 40)),
-            ),
+            child: const Icon(Icons.shopping_bag_outlined, color: Colors.grey, size: 40),
           ),
         ],
       ),

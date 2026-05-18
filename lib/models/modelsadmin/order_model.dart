@@ -1,29 +1,31 @@
 class OrderModel {
   final String idOrder;
-  final String namaProduk;
-  final int harga;
-  final int jumlah;
-  final String gambarProduk;
-  final String status;
+  final String idUser;
+  final String customerName; // Kita ambil dari join atau dummy sementara
+  final int totalPrice;
+  final String status; // 'Tertunda', 'Pengolahan', 'Selesai'
+  final String dateOrdered;
+  final String address;
 
   OrderModel({
     required this.idOrder,
-    required this.namaProduk,
-    required this.harga,
-    required this.jumlah,
-    required this.gambarProduk,
+    required this.idUser,
+    required this.customerName,
+    required this.totalPrice,
     required this.status,
+    required this.dateOrdered,
+    required this.address,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       idOrder: json['id_order'].toString(),
-      namaProduk: json['nama_produk'] ?? 'Produk Tidak Diketahui',
-      // Gunakan double.parse lalu konversi ke int untuk menghilangkan .00
-      harga: double.tryParse(json['harga'].toString())?.toInt() ?? 0,
-      jumlah: int.tryParse(json['jumlah'].toString()) ?? 0,
-      gambarProduk: json['gambar_produk'] ?? '',
-      status: json['status'] ?? 'pending',
+      idUser: json['id_user'].toString(),
+      customerName: json['nama_user'] ?? "Pelanggan", // Sesuaikan hasil JOIN di PHP nanti
+      totalPrice: int.tryParse(json['total_price'].toString()) ?? 0,
+      status: json['status'] ?? 'Tertunda',
+      dateOrdered: json['date_ordered'] ?? '',
+      address: json['address'] ?? '',
     );
   }
 }

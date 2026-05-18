@@ -88,7 +88,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     final pages = [
       _HomePage(onNavigate: _navigate),
-      const OrderListPage(),
+      OrderListPage(),
       const UsersSemua(),
       const ProductListPage(),
       const ProfilAdmin(),
