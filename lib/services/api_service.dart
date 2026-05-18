@@ -234,6 +234,7 @@ class ApiService {
       request.fields['stock'] = product.stock.toString();
       request.fields['category'] = product.category ?? '';
       request.fields['description'] = product.description ?? '';
+      request.fields['category'] = product.category ?? '';
 
       if (imageFile != null) {
         // Handle bytes untuk Flutter Web
@@ -276,6 +277,7 @@ class ApiService {
       request.fields['price'] = product.price.toString();
       request.fields['stock'] = product.stock.toString();
       request.fields['description'] = product.description ?? '';
+      request.fields['category'] = product.category ?? '';
 
       if (imageFile != null) {
         Uint8List bytes = await imageFile.readAsBytes();
@@ -289,8 +291,10 @@ class ApiService {
       }
 
       var response = await http.Response.fromStream(await request.send());
+      print("RESPONSE UPDATE: ${response.body}"); // <-- Tambahkan baris ini
       return jsonDecode(response.body)['success'] == true;
     } catch (e) {
+      print("ERROR CATCH UPDATE: $e"); // <-- Tambahkan baris ini
       return false;
     }
   }
