@@ -57,6 +57,15 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
       );
       return;
     }
+    
+final Map<String, String> categoryMapping = {
+    'Pupuk': '1',
+    'Benih': '2',
+    'Alat': '3',
+    'Obat': '4',
+  };
+
+final String selectedId = categoryMapping[_selectedCategory] ?? '1';
 
     // Tampilkan Loading Overlay
     showDialog(
@@ -71,7 +80,7 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
       price: int.tryParse(_priceController.text) ?? 0,
       stock: int.tryParse(_stockController.text) ?? 0,
       description: _descController.text,
-      category: _selectedCategory,
+      category: selectedId,
       imagePath: _selectedImage!.name, 
     );
 
