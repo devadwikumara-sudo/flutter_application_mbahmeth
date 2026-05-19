@@ -25,7 +25,7 @@ class _OrderListPageState extends State<OrderListPage> {
     setState(() => _isLoading = true);
     try {
       // Pastikan fungsi ini sudah kamu buat di ApiService
-      final data = await ApiService().fetchAllOrders(); 
+      final data = await ApiService().fetchAllOrders();
       setState(() {
         _allOrders = data;
         _isLoading = false;
@@ -39,8 +39,9 @@ class _OrderListPageState extends State<OrderListPage> {
   @override
   Widget build(BuildContext context) {
     // Memfilter list berdasarkan tab yang aktif
-    List<OrderModel> filteredOrders = 
-        _allOrders.where((o) => o.status.toLowerCase() == _activeTab.toLowerCase()).toList();
+    List<OrderModel> filteredOrders = _allOrders
+        .where((o) => o.status.toLowerCase() == _activeTab.toLowerCase())
+        .toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
@@ -50,9 +51,7 @@ class _OrderListPageState extends State<OrderListPage> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(10, 40, 20, 20),
-            decoration: const BoxDecoration(
-              color: Color(0xFF2E9900),
-            ),
+            decoration: const BoxDecoration(color: Color(0xFF2E9900)),
             child: Row(
               children: [
                 IconButton(
@@ -67,10 +66,18 @@ class _OrderListPageState extends State<OrderListPage> {
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("MbahMeth", 
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                    Text("Portal Admin", 
-                      style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text(
+                      "MbahMeth",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Text(
+                      "Portal Admin",
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
                   ],
                 ),
                 const Spacer(),
@@ -97,17 +104,28 @@ class _OrderListPageState extends State<OrderListPage> {
 
           // LIST PESANAN
           Expanded(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF2E9900)))
-              : filteredOrders.isEmpty 
-                ? Center(child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.assignment_late_outlined, size: 50, color: Colors.grey[400]),
-                      const SizedBox(height: 10),
-                      Text("Belum ada pesanan di tab $_activeTab", style: const TextStyle(color: Colors.grey)),
-                    ],
-                  ))
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF2E9900)),
+                  )
+                : filteredOrders.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.assignment_late_outlined,
+                          size: 50,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          "Belum ada pesanan di tab $_activeTab",
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
                 : ListView.builder(
                     padding: const EdgeInsets.all(15),
                     itemCount: filteredOrders.length,
@@ -123,7 +141,9 @@ class _OrderListPageState extends State<OrderListPage> {
 
   // Helper untuk menghitung jumlah pesanan per status
   String _countStatus(String status) {
-    int count = _allOrders.where((o) => o.status.toLowerCase() == status.toLowerCase()).length;
+    int count = _allOrders
+        .where((o) => o.status.toLowerCase() == status.toLowerCase())
+        .length;
     return count.toString();
   }
 
@@ -143,7 +163,8 @@ class _OrderListPageState extends State<OrderListPage> {
         ),
         child: Column(
           children: [
-            Text(title, 
+            Text(
+              title,
               style: TextStyle(
                 color: isActive ? const Color(0xFF2E9900) : Colors.grey,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
@@ -157,8 +178,15 @@ class _OrderListPageState extends State<OrderListPage> {
                   color: const Color(0xFFE8F5E9),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(count, style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
-              )
+                child: Text(
+                  count,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -166,9 +194,10 @@ class _OrderListPageState extends State<OrderListPage> {
   }
 
   Widget _buildOrderCard(OrderModel order) {
-    Color statusColor = _activeTab == "Tertunda" ? Colors.red : 
-                        (_activeTab == "Pengolahan" ? Colors.orange : Colors.green);
-    
+    Color statusColor = _activeTab == "Tertunda"
+        ? Colors.red
+        : (_activeTab == "Pengolahan" ? Colors.orange : Colors.green);
+
     String btnLabel = _activeTab == "Tertunda" ? "Menerima" : "Siap";
 
     return Container(
@@ -177,7 +206,9 @@ class _OrderListPageState extends State<OrderListPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,31 +221,59 @@ class _OrderListPageState extends State<OrderListPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: statusColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(order.status.toUpperCase(), 
-                        style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        order.status.toUpperCase(),
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                    Text(order.dateOrdered, style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                    Text(
+                      order.dateOrdered,
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text("Order #${order.idOrder}", 
+                Text(
+                  "Order #${order.idOrder}",
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                Text("Pelanggan : ${order.customerName}", 
-                  style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  "Pelanggan : ${order.customerName}",
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    const Icon(Icons.payments_outlined, color: Colors.green, size: 18),
+                    const Icon(
+                      Icons.payments_outlined,
+                      color: Colors.green,
+                      size: 18,
+                    ),
                     const SizedBox(width: 5),
-                    Text("Rp ${order.totalPrice}", 
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(
+                      "Rp ${order.totalPrice}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -228,21 +287,31 @@ class _OrderListPageState extends State<OrderListPage> {
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2E9900),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
-                        child: Text(btnLabel, style: const TextStyle(color: Colors.white)),
+                        child: Text(
+                          btnLabel,
+                          style: const TextStyle(color: Colors.white),
+                        ),
                       ),
                     OutlinedButton(
                       onPressed: () {
                         // Aksi lihat detail
                       },
                       style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
-                      child: const Text("Detail", style: TextStyle(color: Colors.grey)),
+                      child: const Text(
+                        "Detail",
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -255,7 +324,11 @@ class _OrderListPageState extends State<OrderListPage> {
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(15),
             ),
-            child: const Icon(Icons.shopping_bag_outlined, color: Colors.grey, size: 40),
+            child: const Icon(
+              Icons.shopping_bag_outlined,
+              color: Colors.grey,
+              size: 40,
+            ),
           ),
         ],
       ),
