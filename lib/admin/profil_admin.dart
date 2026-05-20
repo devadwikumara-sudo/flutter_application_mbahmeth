@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart'; 
-import '../screens/welcome_screen.dart'; // Sesuaikan lokasi halaman welcome/login Anda
+import '../screens/welcome_screen.dart'; 
 
 class ProfilAdmin extends StatefulWidget {
   const ProfilAdmin({super.key});
@@ -25,8 +25,9 @@ class _ProfilAdminState extends State<ProfilAdmin> {
   Future<void> _loadProfileData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      // Default ke ID '2' (jajal) jika SharedPreferences belum mencatat ID saat login
+      // Mengambil id_user dari sesi, default ke "2" jika belum tersimpan
       _idUser = prefs.getString('id_user') ?? "2"; 
+      // Memanggil fungsi nomor 18 di ApiService
       _profileFuture = _apiService.getAdminProfil(_idUser);
     });
   }
@@ -37,7 +38,7 @@ class _ProfilAdminState extends State<ProfilAdmin> {
     const darkSlate = Color(0xFF0F172A);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), // Background abu-abu ultra-light yang bersih
+      backgroundColor: const Color(0xFFF8FAFC), 
       appBar: AppBar(
         backgroundColor: primaryGreen,
         elevation: 0,
@@ -83,7 +84,7 @@ class _ProfilAdminState extends State<ProfilAdmin> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        "Pastikan file get_profil.php sudah benar atau tarik layar ke bawah untuk mencoba kembali.",
+                        "Pastikan file get_profil.php di folder admin sudah benar atau tarik layar ke bawah untuk mencoba kembali.",
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.grey),
                       ),
@@ -93,7 +94,6 @@ class _ProfilAdminState extends State<ProfilAdmin> {
               );
             }
 
-            // Data segar ditarik langsung dari database MySQL via backend PHP
             var userData = snapshot.data!['data'];
             String namaLengkap = userData['nama_lengkap'] ?? "Admin";
             String email = userData['email'] ?? "-";
@@ -137,7 +137,6 @@ class _ProfilAdminState extends State<ProfilAdmin> {
                           child: CircleAvatar(
                             radius: 50,
                             backgroundColor: const Color(0xFFE2F5DD),
-                            // Menggunakan Dicebear Avatar generator yang dinamis menyesuaikan nama admin
                             backgroundImage: NetworkImage(
                               "https://api.dicebear.com/7.x/initials/png?seed=$namaLengkap&backgroundColor=2e9900",
                             ),
@@ -149,7 +148,7 @@ class _ProfilAdminState extends State<ProfilAdmin> {
 
                   const SizedBox(height: 75),
 
-                  // ================= NAMA & BADGE ROLE (DINAMIS DATABASE) =================
+                  // ================= NAMA & BADGE ROLE =================
                   Text(
                     namaLengkap,
                     style: const TextStyle(
@@ -252,14 +251,18 @@ class _ProfilAdminState extends State<ProfilAdmin> {
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           elevation: 0,
-                          backgroundColor: const Color(0xFFFEE2E2), // Soft merah pastel
+                          backgroundColor: const Color(0xFFFEE2E2), 
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         onPressed: () async {
                           final prefs = await SharedPreferences.getInstance();
-                          await prefs.clear(); // Hapus sesi ID login
+                          await prefs.remove('id_user');
+                          await prefs.remove('nama');
+                          await prefs.remove('email');
+                          await prefs.remove('nama_lengkap');
+                          await prefs.remove('role');
 
                           if (!mounted) return;
 
@@ -294,7 +297,6 @@ class _ProfilAdminState extends State<ProfilAdmin> {
     );
   }
 
-  // Widget pembangun baris data akun yang rapi
   Widget _buildProfileItem({required IconData icon, required String title, required String value}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
@@ -329,4 +331,4 @@ class _ProfilAdminState extends State<ProfilAdmin> {
       ),
     );
   }
-}
+} // Kurung kurawal penutup sekarang sudah pas

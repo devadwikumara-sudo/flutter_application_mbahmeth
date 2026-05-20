@@ -72,7 +72,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Alur utama checkout
+  // Alur utama checkout (Langsung menuju SuccessPage tanpa Dialog)
   // ─────────────────────────────────────────────────────────────────────────
   Future<void> _prosesCheckout() async {
     if (_deliveryMethod == null) {
@@ -113,66 +113,38 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
 
-    // 2. Tampilkan dialog struk + proses simpan ke galeri
-    if (!mounted) return;
-    _showReceiptSavingDialog();
-  }
+    // 2. Jalankan proses simpan struk di latar belakang (tanpa menunggu dialog)
+    // Fungsi ini tidak menggunakan kata kunci 'await' agar proses navigasi tidak tertahan
+    _saveReceiptToGallery().then((saved) {
+      if (!saved && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+                'Struk gagal disimpan ke galeri, tapi pesanan berhasil!'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    });
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Dialog: preview struk + tombol simpan & lanjut
-  // ─────────────────────────────────────────────────────────────────────────
-  void _showReceiptSavingDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => _ReceiptSavingDialog(
-        receiptWidget: ReceiptWidget(
+    if (!mounted) return;
+    setState(() => _isProcessing = false);
+
+    // 3. Langsung Navigate ke SuccessPage
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SuccessPage(
           idOrder: widget.idOrder,
-          cartItems: widget.cartItems,
           totalHarga: widget.totalHarga,
           metodePembayaran: _paymentMethod,
           metodeAmbil: _deliveryMethod!,
-          tanggal: DateTime.now(),
-          namaPembeli: _namaPembeli,
         ),
-        onSaveAndContinue: () async {
-          Navigator.of(ctx).pop(); // tutup dialog
-
-          // Simpan ke galeri
-          final saved = await _saveReceiptToGallery();
-
-          if (!mounted) return;
-          setState(() => _isProcessing = false);
-
-          if (!saved) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text(
-                    'Struk gagal disimpan ke galeri, tapi pesanan berhasil!'),
-                backgroundColor: Colors.orange,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-            );
-          }
-
-          // 3. Navigate ke SuccessPage
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(
-              builder: (_) => SuccessPage(
-                idOrder: widget.idOrder,
-                totalHarga: widget.totalHarga,
-                metodePembayaran: _paymentMethod,
-                metodeAmbil: _deliveryMethod!,
-                receiptSaved: saved,
-              ),
-            ),
-            (route) => route.isFirst,
-          );
-        },
       ),
+      (route) => route.isFirst,
     );
   }
 

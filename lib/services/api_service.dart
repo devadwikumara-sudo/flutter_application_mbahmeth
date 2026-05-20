@@ -141,7 +141,7 @@ class ApiService {
     }
   }
 
-  // ── 8. Checkout ───────────────────────────────────────────────────────────
+  // ── 8. Checkout → status awal "Tertunda" ──────────────────────────────────
   Future<bool> checkout({
     required int idOrder,
     required String metodePembayaran,
@@ -167,13 +167,19 @@ class ApiService {
     }
   }
 
-  // ── 9. Riwayat Pesanan ────────────────────────────────────────────────────
+  // ── 9. Riwayat Pesanan (Customer) ─────────────────────────────────────────
+  // Mengembalikan semua order selain 'keranjang':
+  // Tertunda | Pengolahan | Selesai | Dibatalkan
   Future<List<dynamic>> getHistory(int userId) async {
     try {
       final response = await http.get(
         Uri.parse("$customerUrl/get_history.php?id_user=$userId"),
       );
-      if (response.statusCode == 200) return json.decode(response.body);
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is List) return decoded;
+        return [];
+      }
       return [];
     } catch (e) {
       throw Exception('Gagal mengambil riwayat: $e');
@@ -240,7 +246,6 @@ class ApiService {
   Future<List<ProductModel>> getAdminProducts() async {
     try {
       final response = await http.get(Uri.parse("$adminUrl/read.php"));
-
       debugPrint("Fetch Produk Status: ${response.statusCode}");
 
       if (response.statusCode == 200) {
@@ -281,7 +286,6 @@ class ApiService {
 
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
-
       debugPrint("Response simpan: ${response.body}");
 
       if (response.statusCode == 200) {
@@ -321,7 +325,8 @@ class ApiService {
         );
       }
 
-      var response = await http.Response.fromStream(await request.send());
+      var response =
+          await http.Response.fromStream(await request.send());
       debugPrint("RESPONSE UPDATE: ${response.body}");
       return jsonDecode(response.body)['success'] == true;
     } catch (e) {
@@ -355,7 +360,6 @@ class ApiService {
   Future<List<OrderModel>> getOrders() async {
     try {
       final response = await http.get(Uri.parse("$adminUrl/orders/read.php"));
-
       if (response.statusCode == 200) {
         List jsonResponse = json.decode(response.body);
         return jsonResponse.map((data) => OrderModel.fromJson(data)).toList();
@@ -373,7 +377,6 @@ class ApiService {
       final response = await http.get(
         Uri.parse("$adminUrl/read_orders.php?status=$status"),
       );
-
       debugPrint("Fetch Filter Status: ${response.statusCode}");
       debugPrint("Response Body: ${response.body}");
 
@@ -387,13 +390,17 @@ class ApiService {
       return [];
     }
   }
-  
-  // ── 18. Ambil Data Profil Dinamis (FUNGSI BARU COCOK DENGAN PHP ANDA) ───
+
+  // ── 18. Ambil Data Profil Admin ───────────────────────────────────────────
   Future<Map<String, dynamic>> getAdminProfil(String idUser) async {
     try {
-      final response = await http.get(
-        Uri.parse("$customerUrl/get_profil.php?id_user=$idUser"),
-      );
+      final url = Uri.parse("$adminUrl/get_profil.php?id_user=$idUser");
+      debugPrint("Panggilan URL Profil: $url");
+
+      final response = await http.get(url);
+      debugPrint("Status Server Profil: ${response.statusCode}");
+      debugPrint("Isi Response Profil: ${response.body}");
+
       if (response.statusCode == 200) {
         return json.decode(response.body);
       }
@@ -403,39 +410,93 @@ class ApiService {
     }
   }
 
-  //fungsi mengambil tampilan semua order
-Future<List<OrderModel>> getAllOrders() async {
-  try {
-    final response = await http.get(Uri.parse("$adminUrl/get_orders.php"));
-    
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      if (data['success'] == true) {
-        List list = data['data'];
-        return list.map((e) => OrderModel.fromJson(e)).toList();
+  // ── 19. Ambil Semua Pengguna (Admin) ──────────────────────────────────────
+  Future<Map<String, dynamic>> getAllUsers() async {
+    try {
+      final response =
+          await http.get(Uri.parse("$adminUrl/get_users.php"));
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
       }
+      return {
+        'status': 'error',
+        'message': 'Server error: ${response.statusCode}'
+      };
+    } catch (e) {
+      return {
+        'status': 'error',
+        'message': 'Tidak dapat terhubung ke server.'
+      };
     }
-    return [];
-  } catch (e) {
-    print("Error getAllOrders: $e");
-    return [];
   }
-}
 
-  Future<List<OrderModel>> fetchAllOrders() async {
-  try {
-    final response = await http.get(Uri.parse("$adminUrl/get_orders.php"));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data['success'] == true) {
-        List list = data['data'];
-        return list.map((e) => OrderModel.fromJson(e)).toList();
+  // ── 20. Ambil Semua Order untuk Admin Dashboard ───────────────────────────
+  // Mendukung semua status: Tertunda | Pengolahan | Selesai | Dibatalkan
+  Future<List<OrderModel>> getAllOrders() async {
+    try {
+      final response =
+          await http.get(Uri.parse("$adminUrl/get_orders.php"));
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          List list = data['data'];
+          return list.map((e) => OrderModel.fromJson(e)).toList();
+        }
       }
+      return [];
+    } catch (e) {
+      debugPrint("Error getAllOrders: $e");
+      return [];
     }
-    return [];
-  } catch (e) {
-    debugPrint("Error Fetch Orders: $e");
-    return [];
   }
-}
+
+  // ── 21. Fetch All Orders (alias untuk order_list_page) ────────────────────
+  Future<List<OrderModel>> fetchAllOrders() async {
+    try {
+      final response =
+          await http.get(Uri.parse("$adminUrl/get_orders.php"));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          List list = data['data'];
+          return list.map((e) => OrderModel.fromJson(e)).toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint("Error fetchAllOrders: $e");
+      return [];
+    }
+  }
+
+  // ── 22. ★ UPDATE STATUS PESANAN oleh Admin ★ ─────────────────────────────
+  // status valid: 'Tertunda' | 'Pengolahan' | 'Selesai' | 'Dibatalkan'
+  // Jika Dibatalkan → PHP otomatis kembalikan stok produk
+  Future<bool> updateOrderStatus({
+    required int idOrder,
+    required String status,
+  }) async {
+    try {
+      debugPrint("updateOrderStatus → id=$idOrder status=$status");
+
+      final response = await http.post(
+        Uri.parse("$adminUrl/update_order_status.php"),
+        body: {
+          'id_order': idOrder.toString(),
+          'status': status,
+        },
+      );
+
+      debugPrint("updateOrderStatus response [${response.statusCode}]: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        return result['status'] == 'success';
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Error updateOrderStatus: $e");
+      return false;
+    }
+  }
 }

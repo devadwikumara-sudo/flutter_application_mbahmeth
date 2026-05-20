@@ -21,9 +21,11 @@ class _HistoryScreenState extends State<HistoryScreen>
   late TabController _tabController;
 
   final List<_TabData> _tabs = [
-    _TabData(label: 'Semua', icon: Icons.list_rounded),
+    _TabData(label: 'Semua',      icon: Icons.list_rounded),
+    _TabData(label: 'Tertunda',   icon: Icons.hourglass_top_rounded),
     _TabData(label: 'Diproses', icon: Icons.timelapse_rounded),
-    _TabData(label: 'Selesai', icon: Icons.check_circle_rounded),
+    _TabData(label: 'Selesai',    icon: Icons.check_circle_rounded),
+    _TabData(label: 'Dibatalkan', icon: Icons.cancel_rounded),
   ];
 
   @override
@@ -46,19 +48,14 @@ class _HistoryScreenState extends State<HistoryScreen>
     });
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
       _userId = prefs.getInt('id_user') ?? 0;
       if (_userId == 0) {
         setState(() => _isLoading = false);
         return;
       }
 
-      List<dynamic> data = [];
-      try {
-        data = await _api.getOrdersByUser(_userId);
-      } catch (_) {
-        data = await _api.getHistory(_userId);
-      }
-
+      final data = await _api.getHistory(_userId);
       data.sort((a, b) {
         final tA =
             DateTime.tryParse(a['tanggal_pesan'] ?? '') ?? DateTime(2000);
@@ -85,30 +82,46 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   List<dynamic> _filteredOrders(String tab) {
     if (tab == 'Semua') return _allOrders;
-    if (tab == 'Diproses') {
-      return _allOrders
-          .where((o) => o['status']?.toString() == 'keranjang')
-          .toList();
-    }
-    if (tab == 'Selesai') {
-      return _allOrders
-          .where((o) => o['status']?.toString() == 'checkout')
-          .toList();
-    }
-    return _allOrders;
+    return _allOrders.where((o) {
+      final s = (o['status']?.toString() ?? '').toLowerCase();
+      switch (tab) {
+        case 'Tertunda':   return s == 'tertunda';
+        case 'Diproses':   return s == 'pengolahan'; // DB value tetap 'Pengolahan'
+        case 'Selesai':    return s == 'selesai' || s == 'checkout';
+        case 'Dibatalkan': return s == 'dibatalkan';
+        default:           return s == tab.toLowerCase();
+      }
+    }).toList();
   }
 
   String _formatHarga(dynamic harga) {
     if (harga == null) return '0';
     final double nilai = double.tryParse(harga.toString()) ?? 0;
-    return 'Rp${nilai.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+    return 'Rp${nilai.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]}.',
+        )}';
   }
 
   String _formatTanggal(String? tanggal) {
     if (tanggal == null || tanggal.isEmpty) return '-';
     try {
       final dt = DateTime.parse(tanggal);
-      const bulan = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+      const bulan = [
+        '',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agt',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des'
+      ];
       final jam = dt.hour.toString().padLeft(2, '0');
       final menit = dt.minute.toString().padLeft(2, '0');
       return '${dt.day} ${bulan[dt.month]} ${dt.year}, $jam:$menit';
@@ -118,18 +131,36 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   String _labelStatus(dynamic status) {
-    switch (status?.toString()) {
-      case 'checkout': return 'Selesai';
-      case 'keranjang': return 'Diproses';
-      default: return status?.toString() ?? '-';
+    switch (status?.toString().toLowerCase()) {
+      case 'tertunda':   return 'Tertunda';
+      case 'pengolahan': return 'Diproses';
+      case 'selesai':    return 'Selesai';
+      case 'dibatalkan': return 'Dibatalkan';
+      case 'checkout':   return 'Selesai';
+      case 'keranjang':  return 'Keranjang';
+      default:           return status?.toString() ?? '-';
     }
   }
 
   Color _warnaStatus(dynamic status) {
-    switch (status?.toString()) {
-      case 'checkout': return AppColors.primaryGreen;
-      case 'keranjang': return AppColors.warning;
-      default: return Colors.grey;
+    switch (status?.toString().toLowerCase()) {
+      case 'tertunda':   return const Color(0xFFF59E0B);
+      case 'pengolahan': return const Color(0xFF3B82F6);
+      case 'selesai':
+      case 'checkout':   return AppColors.primaryGreen;
+      case 'dibatalkan': return const Color(0xFFEF4444);
+      default:           return Colors.grey;
+    }
+  }
+
+  Color _bgStatus(dynamic status) {
+    switch (status?.toString().toLowerCase()) {
+      case 'tertunda':   return const Color(0xFFFEF3C7);
+      case 'pengolahan': return const Color(0xFFDBEAFE);
+      case 'selesai':
+      case 'checkout':   return AppColors.successLight;
+      case 'dibatalkan': return const Color(0xFFFEE2E2);
+      default:           return Colors.grey.shade100;
     }
   }
 
@@ -147,8 +178,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
-  void _showDetailPesanan(
-      BuildContext context, Map<String, dynamic> order) {
+  void _showDetailPesanan(BuildContext context, Map<String, dynamic> order) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -159,6 +189,7 @@ class _HistoryScreenState extends State<HistoryScreen>
         formatTanggal: _formatTanggal,
         labelStatus: _labelStatus,
         warnaStatus: _warnaStatus,
+        bgStatus: _bgStatus,
         baseUrl: AppConfig.imageServerUrl,
         onPesanLagi: () =>
             Navigator.of(context).popUntil((route) => route.isFirst),
@@ -171,85 +202,84 @@ class _HistoryScreenState extends State<HistoryScreen>
     return PopScope(
       canPop: true,
       child: Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      body: NestedScrollView(
-        headerSliverBuilder: (ctx, inner) => [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 120,
-            backgroundColor: AppColors.primaryGreen,
-            elevation: 0,
-            automaticallyImplyLeading: false,
-            leading: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(left: 8.0),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white, size: 20),
-                  onPressed: () => Navigator.pop(context),
+        backgroundColor: AppColors.backgroundLight,
+        body: NestedScrollView(
+          headerSliverBuilder: (ctx, inner) => [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 120,
+              backgroundColor: AppColors.primaryGreen,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              leading: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ),
+              actions: [
+                SafeArea(
+                  child: IconButton(
+                    icon: const Icon(Icons.search_rounded, color: Colors.white),
+                    onPressed: () => _showSearch(context),
+                  ),
+                ),
+              ],
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 56, bottom: 60),
+                title: const Text(
+                  'Riwayat Pesanan',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
+                  ),
+                ),
+                background: Container(
+                  decoration:
+                      const BoxDecoration(gradient: AppColors.brandGradient),
+                ),
+              ),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(48),
+                child: Container(
+                  color: AppColors.primaryGreen,
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    tabs: _tabs
+                        .map((t) => Tab(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(t.icon, size: 14),
+                                  const SizedBox(width: 5),
+                                  Text(t.label),
+                                ],
+                              ),
+                            ))
+                        .toList(),
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white60,
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 3,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    labelStyle: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 13),
+                    unselectedLabelStyle: const TextStyle(fontSize: 13),
+                  ),
                 ),
               ),
             ),
-            actions: [
-              SafeArea(
-                child: IconButton(
-                  icon: const Icon(Icons.search_rounded, color: Colors.white),
-                  onPressed: () => _showSearch(context),
-                ),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding:
-                  const EdgeInsets.only(left: 56, bottom: 60),
-              title: const Text(
-                'Riwayat Pesanan',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 20,
-                ),
-              ),
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: AppColors.brandGradient,
-                ),
-              ),
-            ),
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
-              child: Container(
-                color: AppColors.primaryGreen,
-                child: TabBar(
-                  controller: _tabController,
-                  tabs: _tabs
-                      .map((t) => Tab(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(t.icon, size: 14),
-                                const SizedBox(width: 5),
-                                Text(t.label),
-                              ],
-                            ),
-                          ))
-                      .toList(),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white60,
-                  indicatorColor: Colors.white,
-                  indicatorWeight: 3,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  labelStyle: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 13),
-                  unselectedLabelStyle: const TextStyle(fontSize: 13),
-                ),
-              ),
-            ),
-          ),
-        ],
-        body: _buildBody(),
+          ],
+          body: _buildBody(),
+        ),
       ),
-      ), // end Scaffold
-    ); // end PopScope
+    );
   }
 
   Widget _buildBody() {
@@ -259,7 +289,6 @@ class _HistoryScreenState extends State<HistoryScreen>
             color: AppColors.primaryGreen, strokeWidth: 2),
       );
     }
-
     if (_userId == 0) {
       return _buildEmptyState(
         icon: Icons.person_off_rounded,
@@ -267,10 +296,7 @@ class _HistoryScreenState extends State<HistoryScreen>
         subtitle: 'Silakan login untuk melihat riwayat pesanan',
       );
     }
-
-    if (_hasError) {
-      return _buildErrorState();
-    }
+    if (_hasError) return _buildErrorState();
 
     return TabBarView(
       controller: _tabController,
@@ -280,7 +306,8 @@ class _HistoryScreenState extends State<HistoryScreen>
             ? _buildEmptyState(
                 icon: Icons.receipt_long_outlined,
                 title: 'Belum Ada Pesanan',
-                subtitle: 'Pesanan ${t.label.toLowerCase()} akan muncul di sini',
+                subtitle:
+                    'Pesanan ${t.label.toLowerCase()} akan muncul di sini',
               )
             : RefreshIndicator(
                 color: AppColors.primaryGreen,
@@ -300,17 +327,11 @@ class _HistoryScreenState extends State<HistoryScreen>
     final status = order['status']?.toString() ?? '';
     final statusLabel = _labelStatus(status);
     final statusColor = _warnaStatus(status);
+    final statusBg = _bgStatus(status);
     final items = order['items'] as List? ?? [];
     final firstItem = items.isNotEmpty ? items[0] : null;
     final namaItem = firstItem?['nama_produk']?.toString() ?? 'Produk';
     final extraCount = items.length - 1;
-
-    // Warna bg badge
-    final Color statusBg = statusColor == AppColors.primaryGreen
-        ? AppColors.successLight
-        : statusColor == AppColors.warning
-            ? const Color(0xFFFEF3C7)
-            : Colors.grey.shade100;
 
     return GestureDetector(
       onTap: () =>
@@ -325,24 +346,24 @@ class _HistoryScreenState extends State<HistoryScreen>
         ),
         child: Column(
           children: [
-            // Header
+            // ── Header kartu ────────────────────────────────────────────
             Container(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
               decoration: BoxDecoration(
-                color: AppColors.successLight.withOpacity(0.4),
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20)),
+                color: statusBg.withOpacity(0.4),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.successLight,
+                      color: statusBg,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.shopping_bag_rounded,
-                        color: AppColors.primaryGreen, size: 18),
+                    child: Icon(Icons.shopping_bag_rounded,
+                        color: statusColor, size: 18),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -352,10 +373,9 @@ class _HistoryScreenState extends State<HistoryScreen>
                         Text(
                           'Pesanan #${order['id_order']}',
                           style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                            color: AppColors.textDark,
-                          ),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                              color: AppColors.textDark),
                         ),
                         Text(
                           _formatTanggal(order['tanggal_pesan']),
@@ -365,7 +385,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                       ],
                     ),
                   ),
-                  // Status badge
+                  // Badge status
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 5),
@@ -388,10 +408,9 @@ class _HistoryScreenState extends State<HistoryScreen>
                         Text(
                           statusLabel,
                           style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: statusColor,
-                          ),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: statusColor),
                         ),
                       ],
                     ),
@@ -400,14 +419,13 @@ class _HistoryScreenState extends State<HistoryScreen>
               ),
             ),
 
-            // Nama produk
+            // ── Nama produk ─────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: Row(
                 children: [
-                  const Icon(Icons.fiber_manual_record,
-                      size: 8, color: AppColors.primaryGreen),
+                  Icon(Icons.fiber_manual_record,
+                      size: 8, color: statusColor),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -426,10 +444,9 @@ class _HistoryScreenState extends State<HistoryScreen>
 
             Divider(height: 1, color: Colors.grey.shade100),
 
-            // Footer
+            // ── Footer ─────────────────────────────────────────────────
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(14, 10, 14, 12),
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -438,14 +455,13 @@ class _HistoryScreenState extends State<HistoryScreen>
                     children: [
                       Text('Total',
                           style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade400)),
+                              fontSize: 11, color: Colors.grey.shade400)),
                       Text(
                         _formatHarga(order['total_harga']),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
-                          color: AppColors.primaryGreen,
+                          color: statusColor,
                         ),
                       ),
                     ],
@@ -454,23 +470,22 @@ class _HistoryScreenState extends State<HistoryScreen>
                     padding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.successLight,
+                      color: statusBg,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
                         Text(
                           'Lihat Detail',
                           style: TextStyle(
-                            color: AppColors.primaryGreen,
+                            color: statusColor,
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                           ),
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Icon(Icons.arrow_forward_ios_rounded,
-                            size: 11,
-                            color: AppColors.primaryGreen),
+                            size: 11, color: statusColor),
                       ],
                     ),
                   ),
@@ -494,10 +509,8 @@ class _HistoryScreenState extends State<HistoryScreen>
           Container(
             width: 80,
             height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.successLight,
-              shape: BoxShape.circle,
-            ),
+            decoration: const BoxDecoration(
+                color: AppColors.successLight, shape: BoxShape.circle),
             child: Icon(icon, size: 36, color: AppColors.primaryGreen),
           ),
           const SizedBox(height: 16),
@@ -508,8 +521,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                   color: AppColors.textDark)),
           const SizedBox(height: 6),
           Text(subtitle,
-              style: TextStyle(
-                  color: Colors.grey.shade400, fontSize: 13),
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 13),
               textAlign: TextAlign.center),
         ],
       ),
@@ -525,19 +537,16 @@ class _HistoryScreenState extends State<HistoryScreen>
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.wifi_off_rounded,
-                size: 36, color: Colors.grey.shade400),
+                color: Colors.grey.shade100, shape: BoxShape.circle),
+            child:
+                Icon(Icons.wifi_off_rounded, size: 36, color: Colors.grey.shade400),
           ),
           const SizedBox(height: 16),
           const Text('Tidak dapat memuat data',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
           const SizedBox(height: 6),
           Text('Periksa koneksi internetmu',
-              style:
-                  TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: _loadHistory,
@@ -548,8 +557,7 @@ class _HistoryScreenState extends State<HistoryScreen>
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
         ],
@@ -558,14 +566,14 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 }
 
-// ── Data class tab ─────────────────────────────────────────────────────────
+// ── Helper classes ─────────────────────────────────────────────────────────────
 class _TabData {
   final String label;
   final IconData icon;
   const _TabData({required this.label, required this.icon});
 }
 
-// ── Search Delegate ────────────────────────────────────────────────────────
+// ── Search Delegate ─────────────────────────────────────────────────────────────
 class _OrderSearchDelegate extends SearchDelegate<String> {
   final List<dynamic> orders;
   final String Function(dynamic) formatHarga;
@@ -590,17 +598,14 @@ class _OrderSearchDelegate extends SearchDelegate<String> {
   ThemeData appBarTheme(BuildContext context) {
     return Theme.of(context).copyWith(
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.primaryGreen,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
+          backgroundColor: AppColors.primaryGreen,
+          foregroundColor: Colors.white,
+          elevation: 0),
       inputDecorationTheme: const InputDecorationTheme(
-        hintStyle: TextStyle(color: Colors.white70),
-        border: InputBorder.none,
-      ),
+          hintStyle: TextStyle(color: Colors.white70),
+          border: InputBorder.none),
       textTheme: const TextTheme(
-        titleLarge: TextStyle(color: Colors.white, fontSize: 16),
-      ),
+          titleLarge: TextStyle(color: Colors.white, fontSize: 16)),
     );
   }
 
@@ -616,7 +621,7 @@ class _OrderSearchDelegate extends SearchDelegate<String> {
     }).toList();
   }
 
-  Widget _buildOrderTile(BuildContext context, dynamic order) {
+  Widget _buildTile(BuildContext context, dynamic order) {
     final items = order['items'] as List? ?? [];
     final firstItem = items.isNotEmpty ? items[0] : null;
     final namaItem = firstItem?['nama_produk']?.toString() ?? 'Produk';
@@ -630,33 +635,27 @@ class _OrderSearchDelegate extends SearchDelegate<String> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: AppColors.successLight,
-          borderRadius: BorderRadius.circular(10),
-        ),
+            color: AppColors.successLight,
+            borderRadius: BorderRadius.circular(10)),
         child: const Icon(Icons.shopping_bag_rounded,
             color: AppColors.primaryGreen, size: 22),
       ),
-      title: Text(
-        'Pesanan #${order['id_order']}',
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-      ),
+      title: Text('Pesanan #${order['id_order']}',
+          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
       subtitle: Text(
-        extraCount > 0 ? '$namaItem +$extraCount lainnya' : namaItem,
-        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+          extraCount > 0 ? '$namaItem +$extraCount lainnya' : namaItem,
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(6),
-            ),
+                color: statusColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(6)),
             child: Text(statusLabel,
                 style: TextStyle(
                     fontSize: 10,
@@ -664,13 +663,11 @@ class _OrderSearchDelegate extends SearchDelegate<String> {
                     color: statusColor)),
           ),
           const SizedBox(height: 4),
-          Text(
-            formatHarga(order['total_harga']),
-            style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-                color: AppColors.primaryGreen),
-          ),
+          Text(formatHarga(order['total_harga']),
+              style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  color: AppColors.primaryGreen)),
         ],
       ),
       onTap: () {
@@ -684,9 +681,8 @@ class _OrderSearchDelegate extends SearchDelegate<String> {
   List<Widget> buildActions(BuildContext context) => [
         if (query.isNotEmpty)
           IconButton(
-            icon: const Icon(Icons.clear, color: Colors.white),
-            onPressed: () => query = '',
-          ),
+              icon: const Icon(Icons.clear, color: Colors.white),
+              onPressed: () => query = '')
       ];
 
   @override
@@ -708,8 +704,8 @@ class _OrderSearchDelegate extends SearchDelegate<String> {
                 size: 52, color: Colors.grey.shade300),
             const SizedBox(height: 12),
             Text('Tidak ada hasil untuk "$query"',
-                style: TextStyle(
-                    color: Colors.grey.shade500, fontSize: 14)),
+                style:
+                    TextStyle(color: Colors.grey.shade500, fontSize: 14)),
           ],
         ),
       );
@@ -717,48 +713,24 @@ class _OrderSearchDelegate extends SearchDelegate<String> {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: results.length,
-      separatorBuilder: (_, _) =>
+      separatorBuilder: (_, __) =>
           Divider(height: 1, color: Colors.grey.shade100),
-      itemBuilder: (ctx, i) => _buildOrderTile(ctx, results[i]),
+      itemBuilder: (ctx, i) => _buildTile(ctx, results[i]),
     );
   }
 
   @override
-  Widget buildSuggestions(BuildContext context) {
-    final results = _getResults();
-    if (query.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_rounded,
-                size: 52, color: Colors.grey.shade300),
-            const SizedBox(height: 12),
-            Text('Cari berdasarkan nomor pesanan atau nama produk',
-                style: TextStyle(
-                    color: Colors.grey.shade400, fontSize: 13),
-                textAlign: TextAlign.center),
-          ],
-        ),
-      );
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: results.length,
-      separatorBuilder: (_, _) =>
-          Divider(height: 1, color: Colors.grey.shade100),
-      itemBuilder: (ctx, i) => _buildOrderTile(ctx, results[i]),
-    );
-  }
+  Widget buildSuggestions(BuildContext context) => buildResults(context);
 }
 
-// ── Bottom Sheet Detail Pesanan ────────────────────────────────────────────
+// ── Bottom Sheet Detail Pesanan ────────────────────────────────────────────────
 class _DetailPesananSheet extends StatelessWidget {
   final Map<String, dynamic> order;
   final String Function(dynamic) formatHarga;
   final String Function(String?) formatTanggal;
   final String Function(dynamic) labelStatus;
   final Color Function(dynamic) warnaStatus;
+  final Color Function(dynamic) bgStatus;
   final String baseUrl;
   final VoidCallback onPesanLagi;
 
@@ -768,6 +740,7 @@ class _DetailPesananSheet extends StatelessWidget {
     required this.formatTanggal,
     required this.labelStatus,
     required this.warnaStatus,
+    required this.bgStatus,
     required this.baseUrl,
     required this.onPesanLagi,
   });
@@ -777,14 +750,14 @@ class _DetailPesananSheet extends StatelessWidget {
     final items = order['items'] as List? ?? [];
     final statusLabel = labelStatus(order['status']);
     final statusColor = warnaStatus(order['status']);
-    final Color statusBg = statusColor == AppColors.primaryGreen
-        ? AppColors.successLight
-        : statusColor == AppColors.warning
-            ? const Color(0xFFFEF3C7)
-            : Colors.grey.shade100;
+    final statusBg = bgStatus(order['status']);
+    final isSelesai = (order['status']?.toString().toLowerCase() == 'selesai' ||
+        order['status']?.toString().toLowerCase() == 'checkout');
+    final isDibatalkan =
+        order['status']?.toString().toLowerCase() == 'dibatalkan';
 
     return DraggableScrollableSheet(
-      initialChildSize: 0.8,
+      initialChildSize: 0.85,
       maxChildSize: 0.95,
       minChildSize: 0.5,
       builder: (ctx, controller) => Container(
@@ -800,9 +773,8 @@ class _DetailPesananSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(top: 12, bottom: 4),
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2)),
             ),
 
             // Header
@@ -810,27 +782,21 @@ class _DetailPesananSheet extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
               child: Row(
                 children: [
-                  const Text(
-                    'Detail Pesanan',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 17),
-                  ),
+                  const Text('Detail Pesanan',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 17)),
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
-                      color: statusBg,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      statusLabel,
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Text(statusLabel,
+                        style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13)),
                   ),
                 ],
               ),
@@ -838,60 +804,45 @@ class _DetailPesananSheet extends StatelessWidget {
 
             Divider(height: 1, color: Colors.grey.shade100),
 
-            // Konten scroll
             Expanded(
               child: ListView(
                 controller: controller,
                 padding: const EdgeInsets.all(20),
                 children: [
-                  // Sukses indikator
-                  if (order['status'] == 'checkout')
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.successLight,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryGreen,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.check_rounded,
-                                color: Colors.white, size: 26),
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Pesanan Selesai',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14)),
-                              Text(
-                                'Pesanan #${order['id_order']} berhasil',
-                                style: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                  // Banner status
+                  if (isSelesai)
+                    _buildBanner(
+                      color: AppColors.successLight,
+                      iconColor: AppColors.primaryGreen,
+                      icon: Icons.check_rounded,
+                      title: 'Pesanan Selesai',
+                      subtitle: 'Pesanan #${order['id_order']} berhasil',
                     ),
+                  if (isDibatalkan)
+                    _buildBanner(
+                      color: const Color(0xFFFEE2E2),
+                      iconColor: const Color(0xFFEF4444),
+                      icon: Icons.close_rounded,
+                      title: 'Pesanan Dibatalkan',
+                      subtitle: 'Pesanan #${order['id_order']} telah dibatalkan',
+                    ),
+                  if (!isSelesai && !isDibatalkan)
+                    _buildBanner(
+                      color: const Color(0xFFFEF3C7),
+                      iconColor: const Color(0xFFF59E0B),
+                      icon: Icons.timelapse_rounded,
+                      title: 'Sedang Diproses',
+                      subtitle: 'Pesanan #${order['id_order']} sedang diproses',
+                    ),
+
+                  const SizedBox(height: 16),
 
                   // Info pesanan
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceGrey,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                        color: AppColors.surfaceGrey,
+                        borderRadius: BorderRadius.circular(16)),
                     child: Column(
                       children: [
                         _InfoRow(
@@ -902,8 +853,7 @@ class _DetailPesananSheet extends StatelessWidget {
                             value: formatTanggal(order['tanggal_pesan'])),
                         _InfoRow(
                             label: 'Metode Bayar',
-                            value: order['metode_pembayaran']
-                                    ?.toString() ??
+                            value: order['metode_pembayaran']?.toString() ??
                                 'Bayar Di Toko'),
                         _InfoRow(
                             label: 'Metode Ambil',
@@ -920,19 +870,16 @@ class _DetailPesananSheet extends StatelessWidget {
                           fontWeight: FontWeight.w800, fontSize: 14)),
                   const SizedBox(height: 10),
 
-                  // Produk list
                   ...items.map<Widget>((item) {
-                    final gambar =
-                        item['gambar_produk']?.toString() ?? '';
+                    final gambar = item['gambar_produk']?.toString() ?? '';
                     final imgUrl = '$baseUrl$gambar';
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.cardBorder),
-                      ),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.cardBorder)),
                       child: Row(
                         children: [
                           ClipRRect(
@@ -942,21 +889,19 @@ class _DetailPesananSheet extends StatelessWidget {
                               width: 56,
                               height: 56,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Container(
+                              errorBuilder: (_, __, ___) => Container(
                                 width: 56,
                                 height: 56,
                                 color: AppColors.successLight,
                                 child: const Icon(Icons.eco_rounded,
-                                    color: AppColors.primaryGreen,
-                                    size: 24),
+                                    color: AppColors.primaryGreen, size: 24),
                               ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   item['nama_produk']?.toString() ?? '-',
@@ -979,9 +924,7 @@ class _DetailPesananSheet extends StatelessWidget {
                           Text(
                             formatHarga(item['subtotal']),
                             style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                                color: AppColors.textDark),
+                                fontWeight: FontWeight.w700, fontSize: 13),
                           ),
                         ],
                       ),
@@ -994,23 +937,20 @@ class _DetailPesananSheet extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.successLight,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(16)),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Total Pembayaran',
                             style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14)),
+                                fontWeight: FontWeight.w700, fontSize: 14)),
                         Text(
                           formatHarga(order['total_harga']),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 17,
-                            color: AppColors.primaryGreen,
-                          ),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 17,
+                              color: statusColor),
                         ),
                       ],
                     ),
@@ -1026,12 +966,10 @@ class _DetailPesananSheet extends StatelessWidget {
                           onPressed: () => Navigator.pop(ctx),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(
-                                color: AppColors.primaryGreen,
-                                width: 1.5),
+                                color: AppColors.primaryGreen, width: 1.5),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14)),
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           child: const Text('Tutup',
                               style: TextStyle(
@@ -1039,36 +977,75 @@ class _DetailPesananSheet extends StatelessWidget {
                                   fontWeight: FontWeight.w700)),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            onPesanLagi();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryGreen,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 14),
+                      if (!isDibatalkan) ...[
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              onPesanLagi();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryGreen,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14)),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text('Pesan Lagi',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700)),
                           ),
-                          child: const Text('Pesan Lagi',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700)),
                         ),
-                      ),
+                      ],
                     ],
                   ),
-
                   const SizedBox(height: 8),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBanner({
+    required Color color,
+    required Color iconColor,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration:
+          BoxDecoration(color: color, borderRadius: BorderRadius.circular(16)),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration:
+                BoxDecoration(color: iconColor, shape: BoxShape.circle),
+            child: Icon(icon, color: Colors.white, size: 26),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      color: AppColors.textDark)),
+              Text(subtitle,
+                  style: TextStyle(
+                      color: Colors.grey.shade500, fontSize: 12)),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1088,17 +1065,14 @@ class _InfoRow extends StatelessWidget {
           SizedBox(
             width: 110,
             child: Text(label,
-                style: TextStyle(
-                    color: Colors.grey.shade500, fontSize: 13)),
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textDark),
-            ),
+            child: Text(value,
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textDark)),
           ),
         ],
       ),

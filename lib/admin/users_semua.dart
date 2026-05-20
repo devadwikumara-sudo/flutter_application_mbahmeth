@@ -1,13 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-
-// ================================================================
-// GANTI baseUrl sesuai IP/localhost server PHP kamu
-// Emulator Android  → http://localhost/TOKO_MBAHMETH/api/admin/get_users.php
-// Device fisik      → http://192.168.x.x/tokombahmet/get_users.php
-// ================================================================
-const String baseUrl = "http://localhost/TOKO_MBAHMETH/api/admin/get_users.php";
+import 'package:flutter_application_mbahmeth/services/api_service.dart';
 
 class UsersSemua extends StatefulWidget {
   const UsersSemua({super.key});
@@ -46,35 +38,25 @@ class _UsersSemuaState extends State<UsersSemua> {
     });
 
     try {
-      final response = await http
-          .get(Uri.parse(baseUrl))
-          .timeout(const Duration(seconds: 10));
+      // Memanggil fungsi terpusat dari ApiService
+      final json = await ApiService().getAllUsers();
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> json = jsonDecode(response.body);
-
-        if (json["status"] == "success") {
-          final List<dynamic> data = json["data"];
-          setState(() {
-            users = data.map((e) => Map<String, dynamic>.from(e)).toList();
-            filteredBySearch = users;
-            isLoading = false;
-          });
-        } else {
-          setState(() {
-            errorMsg = json["message"] ?? "Gagal memuat data";
-            isLoading = false;
-          });
-        }
+      if (json["status"] == "success") {
+        final List<dynamic> data = json["data"];
+        setState(() {
+          users = data.map((e) => Map<String, dynamic>.from(e)).toList();
+          filteredBySearch = users;
+          isLoading = false;
+        });
       } else {
         setState(() {
-          errorMsg = "Server error: ${response.statusCode}";
+          errorMsg = json["message"] ?? "Gagal memuat data";
           isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        errorMsg = "Tidak dapat terhubung ke server.\nPastikan API aktif.";
+        errorMsg = "Terjadi kesalahan sistem.";
         isLoading = false;
       });
     }
