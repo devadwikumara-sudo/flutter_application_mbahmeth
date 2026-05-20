@@ -60,13 +60,30 @@ class OrderModel {
           'Pelanggan';
 
     return OrderModel(
-      idOrder: json['id_order'].toString(),
-      idUser: json['id_user'].toString(),
-      customerName: json['nama_user'] ?? "Pelanggan", // Sesuaikan hasil JOIN di PHP nanti
-      totalPrice: int.tryParse(json['total_price'].toString()) ?? 0,
-      status: json['status'] ?? 'Tertunda',
-      dateOrdered: json['date_ordered'] ?? '',
-      address: json['address'] ?? '',
+      idOrder: int.tryParse(json['id_order']?.toString() ?? '0') ?? 0,
+      idUser: int.tryParse(json['id_user']?.toString() ?? '0') ?? 0,
+      customerName: namaCustomer,
+      totalPrice: hargaStr,
+      status: json['status']?.toString() ?? 'Tertunda',
+      dateOrdered: tanggal,
+      metodePembayaran:
+          json['metode_pembayaran']?.toString() ?? 'Bayar Di Toko',
+      metodeAmbil: json['metode_ambil']?.toString() ?? 'Ambil Di Toko',
+      namaPembeli: json['nama_pembeli']?.toString() ?? '',
+      items: json['items'] is List ? List.from(json['items']) : [],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id_order': idOrder,
+        'id_user': idUser,
+        'customer_name': customerName,
+        'total_harga': totalPrice,
+        'status': status,
+        'tanggal_pesan': dateOrdered,
+        'metode_pembayaran': metodePembayaran,
+        'metode_ambil': metodeAmbil,
+        'nama_pembeli': namaPembeli,
+        'items': items,
+      };
 }
