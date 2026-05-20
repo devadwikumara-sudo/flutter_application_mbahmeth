@@ -15,12 +15,12 @@ class ProductEditPage extends StatefulWidget {
 class _ProductEditPageState extends State<ProductEditPage> {
   final Color primaryGreen = const Color(0xFF2E9900);
 
-final Map<String, String> categoryMapping = {
-  'Pupuk': '1', // Ganti angka ini sesuai ID di database kamu
-  'Benih': '2',
-  'Alat': '3',
-  'Obat': '4',
-};
+  final Map<String, String> categoryMapping = {
+    'Obat': '1',
+    'Pupuk': '2',
+    'Benih': '3',
+    'Alat': '4',
+  };
 
   // Controller untuk input teks (categoryController sudah dihapus)
   late TextEditingController nameController;
@@ -37,7 +37,7 @@ final Map<String, String> categoryMapping = {
 
   // URL Server
   final String imageServerBase =
-      "http://192.168.1.41/toko_mbahmeth/public/assets/products/";
+      "http://172.16.103.30/toko_mbahmeth/public/assets/products/";
 
   @override
   void initState() {
@@ -53,7 +53,7 @@ final Map<String, String> categoryMapping = {
     descController = TextEditingController(text: widget.product.description);
 
     // Mengatur nilai awal untuk Dropdown Kategori
-    List<String> validCategories = ['Pupuk', 'Benih', 'Alat', 'Obat'];
+    List<String> validCategories = ['Obat', 'Pupuk', 'Benih', 'Alat'];
     if (validCategories.contains(widget.product.category)) {
       _selectedCategory = widget.product.category;
     } else {
@@ -174,11 +174,11 @@ final Map<String, String> categoryMapping = {
                     name: nameController.text,
                     price: int.tryParse(priceController.text) ?? 0,
                     stock: int.tryParse(stockController.text) ?? 0,
-  // GUNAKAN MAPPING DI SINI:
-                    category: categoryMapping[_selectedCategory] ?? '', 
+                    // GUNAKAN MAPPING DI SINI:
+                    category: categoryMapping[_selectedCategory] ?? '',
                     description: descController.text,
                     imagePath: widget.product.imagePath,
-                );
+                  );
 
                   // 2. Panggil service dengan fungsi UPDATE PRODUCT
                   // Ini penting agar data tidak terduplikat
@@ -288,7 +288,7 @@ final Map<String, String> categoryMapping = {
           value: _selectedCategory,
           hint: Text(hint),
           isExpanded: true,
-          items: <String>['Pupuk', 'Benih', 'Alat', 'Obat'].map((String value) {
+          items: <String>['Obat', 'Pupuk', 'Benih', 'Alat'].map((String value) {
             return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),
           onChanged: (newValue) => setState(() => _selectedCategory = newValue),

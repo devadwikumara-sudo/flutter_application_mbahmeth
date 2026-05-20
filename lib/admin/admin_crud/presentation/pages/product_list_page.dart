@@ -223,7 +223,7 @@ class _ProductListPageState extends State<ProductListPage>
                             final produk = _filteredProducts[index];
                             return ProductCard(
                               name: produk.name,
-                              price: "Rp ${produk.price}",
+                              price: "Rp. ${produk.price}",
                               stock: produk.stock,
                               imageUrl:
                                   "${ApiService.imageUrl}${produk.imagePath}",

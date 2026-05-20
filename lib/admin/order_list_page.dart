@@ -10,7 +10,7 @@ class OrderListPage extends StatefulWidget {
 }
 
 class _OrderListPageState extends State<OrderListPage> {
-  String _activeTab = "Tertunda";
+  String _activeTab = "Checkout";
   List<OrderModel> _allOrders = [];
   bool _isLoading = true;
 
@@ -32,13 +32,17 @@ class _OrderListPageState extends State<OrderListPage> {
     setState(() => _isLoading = true);
     try {
       final data = await ApiService().fetchAllOrders();
+<<<<<<< HEAD
+=======
+      print("Jumlah data yang diterima: ${data.length}");
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
       setState(() {
         _allOrders = data;
         _isLoading = false;
       });
     } catch (e) {
+      print("Error pas load: $e");
       setState(() => _isLoading = false);
-      debugPrint("Error load orders: $e");
     }
   }
 
@@ -119,9 +123,15 @@ class _OrderListPageState extends State<OrderListPage> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     final filtered = _allOrders
         .where((o) =>
             _matchStatus(o.status, _activeTab))
+=======
+    // Memfilter list berdasarkan tab yang aktif
+    List<OrderModel> filteredOrders = _allOrders
+        .where((o) => o.status.toLowerCase() == _activeTab.toLowerCase())
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
         .toList();
 
     return Scaffold(
@@ -147,6 +157,7 @@ class _OrderListPageState extends State<OrderListPage> {
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+<<<<<<< HEAD
                     Text("MbahMeth",
                         style: TextStyle(
                             color: Colors.white,
@@ -154,6 +165,20 @@ class _OrderListPageState extends State<OrderListPage> {
                             fontSize: 18)),
                     Text("Portal Admin",
                         style: TextStyle(color: Colors.white70, fontSize: 12)),
+=======
+                    Text(
+                      "MbahMeth",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Text(
+                      "Portal Admin",
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
                   ],
                 ),
                 const Spacer(),
@@ -168,6 +193,7 @@ class _OrderListPageState extends State<OrderListPage> {
           // ── Tab Bar ──────────────────────────────────────────────────────
           Container(
             color: Colors.white,
+<<<<<<< HEAD
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -178,6 +204,15 @@ class _OrderListPageState extends State<OrderListPage> {
                   return _buildTabItem(tab, count);
                 }).toList(),
               ),
+=======
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildTabItem("checkout", _countStatus("checkout")),
+                _buildTabItem("proses", _countStatus("proses")),
+                _buildTabItem("selesai", _countStatus("selesai")),
+              ],
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
             ),
           ),
 
@@ -185,6 +220,7 @@ class _OrderListPageState extends State<OrderListPage> {
           Expanded(
             child: _isLoading
                 ? const Center(
+<<<<<<< HEAD
                     child: CircularProgressIndicator(
                         color: Color(0xFF2E9900)))
                 : filtered.isEmpty
@@ -211,15 +247,57 @@ class _OrderListPageState extends State<OrderListPage> {
                               _buildOrderCard(filtered[i]),
                         ),
                       ),
+=======
+                    child: CircularProgressIndicator(color: Color(0xFF2E9900)),
+                  )
+                : filteredOrders.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.assignment_late_outlined,
+                          size: 50,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          "Belum ada pesanan di tab $_activeTab",
+                          style: const TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(15),
+                    itemCount: filteredOrders.length,
+                    itemBuilder: (context, index) {
+                      return _buildOrderCard(filteredOrders[index]);
+                    },
+                  ),
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
           ),
         ],
       ),
     );
   }
 
+<<<<<<< HEAD
   // ── Tab item ───────────────────────────────────────────────────────────────
   Widget _buildTabItem(_TabConfig tab, int count) {
     final isActive = _activeTab == tab.label;
+=======
+  // Helper untuk menghitung jumlah pesanan per status
+  String _countStatus(String status) {
+    int count = _allOrders
+        .where((o) => o.status.toLowerCase() == status.toLowerCase())
+        .length;
+    return count.toString();
+  }
+
+  Widget _buildTabItem(String title, String count) {
+    bool isActive = _activeTab == title;
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
     return GestureDetector(
       onTap: () => setState(() => _activeTab = tab.label),
       child: Container(
@@ -237,7 +315,11 @@ class _OrderListPageState extends State<OrderListPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
+<<<<<<< HEAD
               tab.label,
+=======
+              title,
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
               style: TextStyle(
                 color: isActive ? tab.color : Colors.grey,
                 fontWeight:
@@ -255,6 +337,7 @@ class _OrderListPageState extends State<OrderListPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
+<<<<<<< HEAD
                   '$count',
                   style: TextStyle(
                       fontSize: 10,
@@ -263,6 +346,16 @@ class _OrderListPageState extends State<OrderListPage> {
                 ),
               ),
             ],
+=======
+                  count,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
           ],
         ),
       ),
@@ -271,6 +364,7 @@ class _OrderListPageState extends State<OrderListPage> {
 
   // ── Order Card ─────────────────────────────────────────────────────────────
   Widget _buildOrderCard(OrderModel order) {
+<<<<<<< HEAD
     final tabConfig = _tabs.firstWhere(
       (t) => t.label.toLowerCase() == _activeTab.toLowerCase(),
       orElse: () => _tabs[0],
@@ -354,6 +448,13 @@ class _OrderListPageState extends State<OrderListPage> {
       );
     }
     // Tab Selesai & Dibatalkan tidak ada tombol aksi
+=======
+    Color statusColor = _activeTab == "Tertunda"
+        ? Colors.red
+        : (_activeTab == "Pengolahan" ? Colors.orange : Colors.green);
+
+    String btnLabel = _activeTab == "Tertunda" ? "Menerima" : "Siap";
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -362,15 +463,20 @@ class _OrderListPageState extends State<OrderListPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
+<<<<<<< HEAD
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
           )
+=======
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+<<<<<<< HEAD
           // Header baris: badge status + tanggal
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -402,6 +508,124 @@ class _OrderListPageState extends State<OrderListPage> {
           Text(
             'Order #${order.idOrder}',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+=======
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        order.status.toUpperCase(),
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      order.dateOrdered,
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Order #${order.idOrder}",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  "Pelanggan : ${order.customerName}",
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.payments_outlined,
+                      color: Colors.green,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      "Rp ${order.totalPrice}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    if (_activeTab != "Selesai")
+                      ElevatedButton(
+                        onPressed: () {
+                          // TODO: Implementasi Update Status ke DB
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2E9900),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: Text(
+                          btnLabel,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    OutlinedButton(
+                      onPressed: () {
+                        // Aksi lihat detail
+                      },
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        "Detail",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Gambar Placeholder karena di tabel order biasanya tidak ada gambar produk langsung
+          Container(
+            width: 80,
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: const Icon(
+              Icons.shopping_bag_outlined,
+              color: Colors.grey,
+              size: 40,
+            ),
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
           ),
           Text(
             'Pelanggan: ${order.customerName}',
@@ -448,6 +672,7 @@ class _OrderListPageState extends State<OrderListPage> {
     );
   }
 }
+<<<<<<< HEAD
 
 // ── Helper: cocokkan label tab (UI) dengan nilai status di DB ─────────────────
 // Label 'Diproses' di UI → nilai 'Pengolahan' di database
@@ -469,3 +694,5 @@ class _TabConfig {
   final Color bgColor;
   const _TabConfig(this.label, this.color, this.bgColor);
 }
+=======
+>>>>>>> 8fc1f8d548a1adf13c785c5dac3f0a936e9ad237
