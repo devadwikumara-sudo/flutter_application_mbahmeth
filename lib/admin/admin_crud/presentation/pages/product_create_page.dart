@@ -59,8 +59,8 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
     }
     
 final Map<String, String> categoryMapping = {
-    'Pupuk': '1',
-    'Obat': '2',
+    'Obat': '1',
+    'Pupuk': '2',
     'Benih': '3',
     'Alat': '4',
   };

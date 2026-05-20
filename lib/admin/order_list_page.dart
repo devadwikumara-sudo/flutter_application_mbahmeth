@@ -10,7 +10,7 @@ class OrderListPage extends StatefulWidget {
 }
 
 class _OrderListPageState extends State<OrderListPage> {
-  String _activeTab = "Tertunda";
+  String _activeTab = "Checkout";
   List<OrderModel> _allOrders = [];
   bool _isLoading = true;
 
@@ -24,15 +24,15 @@ class _OrderListPageState extends State<OrderListPage> {
   Future<void> _loadOrders() async {
     setState(() => _isLoading = true);
     try {
-      // Pastikan fungsi ini sudah kamu buat di ApiService
       final data = await ApiService().fetchAllOrders();
+      print("Jumlah data yang diterima: ${data.length}");
       setState(() {
         _allOrders = data;
         _isLoading = false;
       });
     } catch (e) {
+      print("Error pas load: $e");
       setState(() => _isLoading = false);
-      debugPrint("Error load orders: $e");
     }
   }
 
@@ -95,9 +95,9 @@ class _OrderListPageState extends State<OrderListPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildTabItem("Tertunda", _countStatus("Tertunda")),
-                _buildTabItem("Pengolahan", _countStatus("Pengolahan")),
-                _buildTabItem("Selesai", _countStatus("Selesai")),
+                _buildTabItem("checkout", _countStatus("checkout")),
+                _buildTabItem("proses", _countStatus("proses")),
+                _buildTabItem("selesai", _countStatus("selesai")),
               ],
             ),
           ),

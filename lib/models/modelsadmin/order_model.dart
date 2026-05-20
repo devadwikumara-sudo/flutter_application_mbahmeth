@@ -20,12 +20,12 @@ class OrderModel {
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       idOrder: json['id_order'].toString(),
-      idUser: json['id_user'].toString(),
-      customerName: json['nama_user'] ?? "Pelanggan", // Sesuaikan hasil JOIN di PHP nanti
-      totalPrice: int.tryParse(json['total_price'].toString()) ?? 0,
-      status: json['status'] ?? 'Tertunda',
-      dateOrdered: json['date_ordered'] ?? '',
-      address: json['address'] ?? '',
+      idUser: json['id_user']?.toString() ?? "-", 
+      customerName: json['nama_pembeli'] ?? "Pelanggan", // Sesuai kolom di DB
+      totalPrice: int.tryParse(json['total_harga'].toString()) ?? 0, // Sesuai kolom di DB
+      status: json['status'] ?? 'keranjang', 
+      dateOrdered: json['tanggal_pesan'] ?? '', // Sesuai kolom di DB
+      address: "-", // Tidak ada kolom alamat di tabel orders kamu
     );
   }
 }
