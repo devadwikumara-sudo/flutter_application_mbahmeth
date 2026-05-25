@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/api_service.dart'; 
-import '../screens/welcome_screen.dart'; 
+import '../services/api_service.dart';
+import '../screens/welcome_screen.dart';
 
 class ProfilAdmin extends StatefulWidget {
-  const ProfilAdmin({super.key});
+  // FIX: Parameter isEmbedded — ketika true (dipakai sebagai tab di dashboard),
+  //      tombol back di AppBar disembunyikan agar tidak menyebabkan blackscreen.
+  final bool isEmbedded;
+
+  const ProfilAdmin({super.key, this.isEmbedded = false});
 
   @override
   State<ProfilAdmin> createState() => _ProfilAdminState();
@@ -21,13 +25,10 @@ class _ProfilAdminState extends State<ProfilAdmin> {
     _loadProfileData();
   }
 
-  // Mengambil ID User dari sesi lokal untuk memicu request real-time ke database
   Future<void> _loadProfileData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      // Mengambil id_user dari sesi, default ke "2" jika belum tersimpan
-      _idUser = prefs.getString('id_user') ?? "2"; 
-      // Memanggil fungsi nomor 18 di ApiService
+      _idUser = prefs.getString('admin_id_user') ?? "2";
       _profileFuture = _apiService.getAdminProfil(_idUser);
     });
   }
@@ -38,10 +39,11 @@ class _ProfilAdminState extends State<ProfilAdmin> {
     const darkSlate = Color(0xFF0F172A);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC), 
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: primaryGreen,
         elevation: 0,
+        automaticallyImplyLeading: !widget.isEmbedded,
         title: const Text(
           "Informasi Akun",
           style: TextStyle(
@@ -63,10 +65,13 @@ class _ProfilAdminState extends State<ProfilAdmin> {
           future: _profileFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator(color: primaryGreen));
+              return const Center(
+                  child: CircularProgressIndicator(color: primaryGreen));
             }
 
-            if (snapshot.hasError || snapshot.data == null || snapshot.data!['success'] == false) {
+            if (snapshot.hasError ||
+                snapshot.data == null ||
+                snapshot.data!['success'] == false) {
               return SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Container(
@@ -76,11 +81,15 @@ class _ProfilAdminState extends State<ProfilAdmin> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.cloud_off_rounded, size: 64, color: Colors.grey),
+                      const Icon(Icons.cloud_off_rounded,
+                          size: 64, color: Colors.grey),
                       const SizedBox(height: 16),
                       const Text(
                         "Gagal Memuat Data Terbaru",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: darkSlate),
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: darkSlate),
                       ),
                       const SizedBox(height: 8),
                       const Text(
@@ -160,7 +169,8 @@ class _ProfilAdminState extends State<ProfilAdmin> {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE2F5DD),
                       borderRadius: BorderRadius.circular(30),
@@ -215,19 +225,22 @@ class _ProfilAdminState extends State<ProfilAdmin> {
                                 title: "ID Akun",
                                 value: _idUser,
                               ),
-                              const Divider(height: 1, indent: 56, endIndent: 20),
+                              const Divider(
+                                  height: 1, indent: 56, endIndent: 20),
                               _buildProfileItem(
                                 icon: Icons.person_outline_rounded,
                                 title: "Nama Lengkap",
                                 value: namaLengkap,
                               ),
-                              const Divider(height: 1, indent: 56, endIndent: 20),
+                              const Divider(
+                                  height: 1, indent: 56, endIndent: 20),
                               _buildProfileItem(
                                 icon: Icons.alternate_email_rounded,
                                 title: "Alamat Email",
                                 value: email,
                               ),
-                              const Divider(height: 1, indent: 56, endIndent: 20),
+                              const Divider(
+                                  height: 1, indent: 56, endIndent: 20),
                               _buildProfileItem(
                                 icon: Icons.verified_user_outlined,
                                 title: "Status Enkripsi",
@@ -251,18 +264,18 @@ class _ProfilAdminState extends State<ProfilAdmin> {
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           elevation: 0,
-                          backgroundColor: const Color(0xFFFEE2E2), 
+                          backgroundColor: const Color(0xFFFEE2E2),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         onPressed: () async {
                           final prefs = await SharedPreferences.getInstance();
-                          await prefs.remove('id_user');
-                          await prefs.remove('nama');
-                          await prefs.remove('email');
-                          await prefs.remove('nama_lengkap');
-                          await prefs.remove('role');
+                          await prefs.remove('admin_id_user');
+                          await prefs.remove('admin_nama');
+                          await prefs.remove('admin_email');
+                          await prefs.remove('admin_nama_lengkap');
+                          await prefs.remove('admin_role');
 
                           if (!mounted) return;
 
@@ -275,14 +288,19 @@ class _ProfilAdminState extends State<ProfilAdmin> {
 
                           Navigator.pushAndRemoveUntil(
                             context,
-                            MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                            MaterialPageRoute(
+                                builder: (context) => const WelcomeScreen()),
                             (route) => false,
                           );
                         },
-                        icon: const Icon(Icons.power_settings_new_rounded, color: Colors.red, size: 22),
+                        icon: const Icon(Icons.power_settings_new_rounded,
+                            color: Colors.red, size: 22),
                         label: const Text(
                           "Keluar Sesi",
-                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.w700, fontSize: 16),
+                          style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16),
                         ),
                       ),
                     ),
@@ -297,7 +315,10 @@ class _ProfilAdminState extends State<ProfilAdmin> {
     );
   }
 
-  Widget _buildProfileItem({required IconData icon, required String title, required String value}) {
+  Widget _buildProfileItem(
+      {required IconData icon,
+      required String title,
+      required String value}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       child: Row(
@@ -317,12 +338,18 @@ class _ProfilAdminState extends State<ProfilAdmin> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
-                  style: const TextStyle(fontSize: 15, color: Color(0xFF1E293B), fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF1E293B),
+                      fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -331,4 +358,4 @@ class _ProfilAdminState extends State<ProfilAdmin> {
       ),
     );
   }
-} // Kurung kurawal penutup sekarang sudah pas
+}

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
 import 'package:flutter_application_mbahmeth/screens/customer_login.dart';
+import 'package:flutter_application_mbahmeth/screens/welcome_screen.dart';
 import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/custom_text_field.dart';
 import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/primary_button.dart';
 import 'package:flutter_application_mbahmeth/admin/dashboard.dart';
@@ -68,11 +69,23 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     super.dispose();
   }
 
+  void _goToWelcome() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9), // Background lembut sesuai Customer Login
-      body: Stack(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goToWelcome();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAF9),
+        body: Stack(
         children: [
           // Elemen Dekoratif Background (Lingkaran halus)
           Positioned(
@@ -120,7 +133,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       alignment: Alignment.centerLeft,
                       child: IconButton(
                         icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          } else {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                            );
+                          }
+                        },
                       ),
                     ),
 
@@ -275,6 +297,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           ),
         ],
       ),
-    );
+    ),  // tutup Scaffold
+    );  // tutup PopScope
   }
 }

@@ -558,7 +558,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         borderRadius: BorderRadius.circular(14),
                         child: Image.network(
                           imgUrl, width: 64, height: 64, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             width: 64, height: 64, color: statusBg,
                             child: Icon(Icons.eco_rounded,
                                 color: statusColor, size: 28),
@@ -925,7 +925,7 @@ class _DetailNotifSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         child: Image.network(
                           imgUrl, width: 52, height: 52, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             width: 52, height: 52, color: statusBg,
                             child: Icon(Icons.eco_rounded,
                                 color: statusColor, size: 22),

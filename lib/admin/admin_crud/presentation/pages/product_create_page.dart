@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart'; // Untuk kIsWeb
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_application_mbahmeth/models/modelsadmin/product_model.dart';
@@ -12,97 +12,106 @@ class ProductCreatePage extends StatefulWidget {
 }
 
 class _ProductCreatePageState extends State<ProductCreatePage> {
-  final Color primaryGreen = const Color(0xFF2E9900);
+  static const _primaryGreen     = Color(0xFF2E9900);
+  static const _primaryGreenDark = Color(0xFF1F6B00);
+  static const _backgroundLight  = Color(0xFFF4FAF2);
+  static const _backgroundWhite  = Color(0xFFFFFFFF);
+  static const _textDark         = Color(0xFF1A2E1A);
+  static const _textHint         = Color(0xFFB0C4B0);
+  static const _inputBorder      = Color(0xFFDFEFDF);
+  static const _successLight     = Color(0xFFE8F5E2);
+  static const _primaryRed       = Color(0xFFD32F2F);
 
-  // Controller untuk input teks
-  final _nameController = TextEditingController();
+  final _nameController  = TextEditingController();
   final _priceController = TextEditingController();
   final _stockController = TextEditingController();
-  final _descController = TextEditingController();
+  final _descController  = TextEditingController();
 
   String? _selectedCategory;
   XFile? _selectedImage;
-  Uint8List? _webImage; // Khusus preview di Flutter Web
+  Uint8List? _webImage;
   final ImagePicker _picker = ImagePicker();
 
-  // Membuka File Explorer/Gallery
-  Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(
-      source: ImageSource.gallery,
-    );
+  final Map<String, String> _categoryMapping = {
+    'Obat'  : '1',
+    'Pupuk' : '2',
+    'Benih' : '3',
+    'Alat'  : '4',
+  };
 
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       if (kIsWeb) {
-        // Baca bytes agar bisa tampil di browser
         final bytes = await image.readAsBytes();
         setState(() {
           _webImage = bytes;
           _selectedImage = image;
         });
       } else {
-        setState(() {
-          _selectedImage = image;
-        });
+        setState(() => _selectedImage = image);
       }
     }
   }
 
   void _saveData() async {
-    // Validasi input
     if (_nameController.text.isEmpty ||
         _priceController.text.isEmpty ||
         _selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Nama, Harga, dan Foto wajib diisi!")),
+        SnackBar(
+          content: const Text("Nama, Harga, dan Foto wajib diisi!"),
+          backgroundColor: _primaryRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
       );
       return;
     }
-    
-final Map<String, String> categoryMapping = {
-    'Obat': '1',
-    'Pupuk': '2',
-    'Benih': '3',
-    'Alat': '4',
-  };
 
-final String selectedId = categoryMapping[_selectedCategory] ?? '1';
+    // ✅ Gunakan _categoryMapping yang sudah didefinisikan sebagai field class
+    final String selectedId = _categoryMapping[_selectedCategory] ?? '1';
 
-    // Tampilkan Loading Overlay
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (context) =>
+          const Center(child: CircularProgressIndicator(color: _primaryGreen)),
     );
 
-    // 1. Bungkus data ke dalam Model
     final newProduct = ProductModel(
       name: _nameController.text,
       price: int.tryParse(_priceController.text) ?? 0,
       stock: int.tryParse(_stockController.text) ?? 0,
       description: _descController.text,
       category: selectedId,
-      imagePath: _selectedImage!.name, 
+      imagePath: _selectedImage!.name,
     );
 
-    // 2. Kirim ke ApiService
-    bool success = await ApiService().addProduct(
-      newProduct,
-      _selectedImage,
-    );
-
-    if (mounted) Navigator.pop(context); // Tutup loading
+    bool success = await ApiService().addProduct(newProduct, _selectedImage);
+    if (mounted) Navigator.pop(context);
 
     if (success) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Produk Berhasil Ditambah!")),
+          SnackBar(
+            content: const Text("Produk Berhasil Ditambah!"),
+            backgroundColor: _primaryGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         );
-        Navigator.pop(context, true); // Kembali ke list & refresh
+        Navigator.pop(context, true);
       }
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Gagal menyimpan ke database!")),
+          SnackBar(
+            content: const Text("Gagal menyimpan ke database!"),
+            backgroundColor: _primaryRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         );
       }
     }
@@ -111,146 +120,233 @@ final String selectedId = categoryMapping[_selectedCategory] ?? '1';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        backgroundColor: primaryGreen,
-        elevation: 0,
-        title: const Text(
-          'Tambah Produk Baru',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildLabel("Foto Produk"),
-            const SizedBox(height: 8),
-
-            // AREA PILIH FOTO
-            GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                width: double.infinity,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: _selectedImage == null
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_a_photo_outlined, color: primaryGreen, size: 40),
-                          const SizedBox(height: 8),
-                          Text("Pilih Gambar", style: TextStyle(color: primaryGreen)),
-                        ],
-                      )
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: kIsWeb
-                            ? Image.memory(_webImage!, fit: BoxFit.cover)
-                            : Image.network(_selectedImage!.path, fit: BoxFit.cover),
-                      ),
+      backgroundColor: _backgroundLight,
+      body: Column(
+        children: [
+          // ── Header ──────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(4, 48, 20, 16),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_primaryGreenDark, _primaryGreen],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
-
-            const SizedBox(height: 20),
-            _buildLabel("Nama Produk"),
-            _buildTextField("Masukkan nama produk", _nameController),
-
-            const SizedBox(height: 20),
-            Row(
+            child: Row(
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel("Harga (Rp)"),
-                      _buildTextField("0", _priceController, isNumber: true),
-                    ],
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                      color: Colors.white, size: 20),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                Image.asset(
+                  'assets/images/x2.png',
+                  height: 38,
+                  errorBuilder: (c, e, s) => Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.eco_rounded,
+                        color: Colors.white, size: 20),
                   ),
                 ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel("Jumlah Stok"),
-                      _buildTextField("0", _stockController, isNumber: true),
-                    ],
+                const SizedBox(width: 12),
+                const Text(
+                  "Tambah Produk",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
                   ),
                 ),
               ],
             ),
+          ),
+          // ── Body ──────────────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionLabel("Foto Produk", Icons.image_outlined),
+                  const SizedBox(height: 10),
 
-            const SizedBox(height: 20),
-            _buildLabel("Kategori"),
-            _buildDropdownField("Pilih Kategori"),
+                  // ── Area pilih foto ──────────────────────────────────
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      width: double.infinity,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: _backgroundWhite,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _inputBorder, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF2E9900).withOpacity(0.06),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: _selectedImage == null
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: const BoxDecoration(
+                                    color: _successLight,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.add_a_photo_outlined,
+                                      color: _primaryGreen, size: 32),
+                                ),
+                                const SizedBox(height: 10),
+                                const Text("Ketuk untuk pilih gambar",
+                                    style: TextStyle(
+                                        color: _primaryGreen,
+                                        fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 4),
+                                const Text("JPG, PNG, WEBP",
+                                    style: TextStyle(
+                                        color: _textHint, fontSize: 12)),
+                              ],
+                            )
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: kIsWeb
+                                  ? Image.memory(_webImage!,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity)
+                                  : Image.network(_selectedImage!.path,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity),
+                            ),
+                    ),
+                  ),
 
-            const SizedBox(height: 20),
-            _buildLabel("Deskripsi Produk"),
-            _buildTextField(
-              "Jelaskan detail produk...",
-              _descController,
-              maxLines: 4,
-            ),
+                  const SizedBox(height: 24),
+                  _buildSectionLabel("Nama Produk", Icons.local_florist_outlined),
+                  const SizedBox(height: 8),
+                  _buildTextField("Masukkan nama produk", _nameController),
 
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton.icon(
-                onPressed: _saveData,
-                icon: const Icon(Icons.save, color: Colors.white),
-                label: const Text(
-                  'SIMPAN PRODUK',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryGreen,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionLabel("Harga (Rp)", Icons.payments_outlined),
+                            const SizedBox(height: 8),
+                            _buildTextField("0", _priceController, isNumber: true),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionLabel("Stok", Icons.inventory_2_outlined),
+                            const SizedBox(height: 8),
+                            _buildTextField("0", _stockController, isNumber: true),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 20),
+                  _buildSectionLabel("Kategori", Icons.category_outlined),
+                  const SizedBox(height: 8),
+                  _buildDropdownField("Pilih Kategori"),
+
+                  const SizedBox(height: 20),
+                  _buildSectionLabel("Deskripsi Produk", Icons.description_outlined),
+                  const SizedBox(height: 8),
+                  _buildTextField("Jelaskan detail produk...", _descController,
+                      maxLines: 4),
+
+                  const SizedBox(height: 36),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton.icon(
+                      onPressed: _saveData,
+                      icon: const Icon(Icons.save_rounded, color: Colors.white),
+                      label: const Text(
+                        'SIMPAN PRODUK',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _primaryGreen,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // --- WIDGET HELPERS ---
-
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+  Widget _buildSectionLabel(String text, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: _primaryGreen),
+        const SizedBox(width: 6),
+        Text(text,
+            style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: _textDark)),
+      ],
     );
   }
 
-  Widget _buildTextField(String hint, TextEditingController controller, {int maxLines = 1, bool isNumber = false}) {
+  Widget _buildTextField(String hint, TextEditingController controller,
+      {int maxLines = 1, bool isNumber = false}) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      style: const TextStyle(color: _textDark, fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,
+        hintStyle: const TextStyle(color: _textHint),
         filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+        fillColor: _backgroundWhite,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _inputBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _inputBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _primaryGreen, width: 1.5),
         ),
       ),
     );
@@ -258,18 +354,23 @@ final String selectedId = categoryMapping[_selectedCategory] ?? '1';
 
   Widget _buildDropdownField(String hint) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        color: _backgroundWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _inputBorder),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCategory,
-          hint: Text(hint),
+          hint: Text(hint, style: const TextStyle(color: _textHint)),
           isExpanded: true,
-          items: <String>['Pupuk', 'Benih', 'Alat', 'Obat'].map((String value) {
+          style: const TextStyle(color: _textDark, fontSize: 14),
+          dropdownColor: _backgroundWhite,
+          // ✅ FIX: Urutan dropdown diselaraskan dengan ID database
+          //   SEBELUM: ['Pupuk','Benih','Alat','Obat'] ← acak, tidak sesuai ID
+          //   SESUDAH: ['Obat','Pupuk','Benih','Alat'] ← sesuai ID 1,2,3,4
+          items: <String>['Obat', 'Pupuk', 'Benih', 'Alat'].map((String value) {
             return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),
           onChanged: (newValue) => setState(() => _selectedCategory = newValue),

@@ -1,36 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_application_mbahmeth/services/api_service.dart';
 
 class UsersSemua extends StatefulWidget {
-  const UsersSemua({super.key});
+  // FIX: Parameter isEmbedded — ketika true (dipakai sebagai tab di dashboard),
+  //      tombol back di header disembunyikan agar tidak menyebabkan blackscreen.
+  final bool isEmbedded;
+
+  const UsersSemua({super.key, this.isEmbedded = false});
 
   @override
   State<UsersSemua> createState() => _UsersSemuaState();
 }
 
 class _UsersSemuaState extends State<UsersSemua> {
-  int selectedTab = 0;
+  static const _primaryGreen     = Color(0xFF2E9900);
+  static const _primaryGreenDark = Color(0xFF1F6B00);
+  static const _backgroundLight  = Color(0xFFF4FAF2);
+  static const _backgroundWhite  = Color(0xFFFFFFFF);
+  static const _textDark         = Color(0xFF1A2E1A);
+  static const _textLight        = Color(0xFF8A9E8A);
+  static const _inputBorder      = Color(0xFFDFEFDF);
+  static const _textHint         = Color(0xFFB0C4B0);
 
+  int selectedTab = 0;
   List<Map<String, dynamic>> users = [];
   List<Map<String, dynamic>> filteredBySearch = [];
-
   bool isLoading = true;
   String errorMsg = "";
   String searchQuery = "";
 
-  // ---- Warna badge berdasarkan role ----
   Color _roleColor(String role) {
     switch (role.toLowerCase()) {
       case "admin":
-        return Colors.blue;
+        return const Color(0xFF2E9900);
       case "pelanggan":
-        return Colors.green;
+        return const Color(0xFF3DB800);
       default:
-        return Colors.grey;
+        return _textLight;
     }
   }
 
-  // ---- Fetch data dari API ----
+  Color _roleBgColor(String role) {
+    switch (role.toLowerCase()) {
+      case "admin":
+        return const Color(0xFFE8F5E2);
+      case "pelanggan":
+        return const Color(0xFFF4FAF2);
+      default:
+        return const Color(0xFFF4FAF2);
+    }
+  }
+
   Future<void> fetchUsers() async {
     setState(() {
       isLoading = true;
@@ -38,7 +59,6 @@ class _UsersSemuaState extends State<UsersSemua> {
     });
 
     try {
-      // Memanggil fungsi terpusat dari ApiService
       final json = await ApiService().getAllUsers();
 
       if (json["status"] == "success") {
@@ -68,20 +88,16 @@ class _UsersSemuaState extends State<UsersSemua> {
     fetchUsers();
   }
 
-  // ---- Filter berdasarkan tab ----
   List<Map<String, dynamic>> get filteredUsers {
     List<Map<String, dynamic>> result = filteredBySearch;
-
     if (selectedTab == 1) {
       result = result.where((e) => e["role"].toLowerCase() == "admin").toList();
     } else if (selectedTab == 2) {
-      result =
-          result.where((e) => e["role"].toLowerCase() == "pelanggan").toList();
+      result = result.where((e) => e["role"].toLowerCase() == "pelanggan").toList();
     }
     return result;
   }
 
-  // ---- Filter berdasarkan search ----
   void onSearch(String query) {
     setState(() {
       searchQuery = query;
@@ -100,40 +116,92 @@ class _UsersSemuaState extends State<UsersSemua> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xffF5F5F5),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ---- HEADER ----
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light, // icon baterai/jam jadi putih
+      child: Scaffold(
+      backgroundColor: _backgroundLight,
+      body: Column(
+        children: [
+            // ── Header dengan gradient (tembus sampai status bar) ──────
             Container(
               width: double.infinity,
-              color: const Color(0xff2E9900),
-              padding: const EdgeInsets.all(14),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [_primaryGreenDark, _primaryGreen],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              padding: EdgeInsets.fromLTRB(
+                4,
+                MediaQuery.of(context).padding.top + 10,
+                16,
+                14,
+              ),
               child: Row(
-                children: const [
-                  CircleAvatar(
-                    radius: 22,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.store, color: Colors.green),
+                children: [
+                  // FIX: Tombol back HANYA tampil ketika halaman di-push sebagai
+                  //      route terpisah (isEmbedded == false).
+                  if (!widget.isEmbedded)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                          color: Colors.white, size: 20),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  if (widget.isEmbedded) const SizedBox(width: 12),
+                  Image.asset(
+                    'assets/images/x2.png',
+                    height: 38,
+                    errorBuilder: (c, e, s) => Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.eco_rounded,
+                          color: Colors.white, size: 20),
+                    ),
                   ),
-                  SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "MbahMeth",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        "Portal Admin",
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ],
+                  const Spacer(),
+                  // Tombol refresh di kanan
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      onPressed: fetchUsers,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2E9900).withOpacity(0.10),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.people_rounded,
+                        color: _primaryGreen, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    "Kelola Pengguna",
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: _textDark,
+                        letterSpacing: -0.3),
                   ),
                 ],
               ),
@@ -141,27 +209,31 @@ class _UsersSemuaState extends State<UsersSemua> {
 
             const SizedBox(height: 14),
 
-            const Text(
-              "Kelola Pengguna",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 14),
-
-            // ---- SEARCH ----
+            // ── Search ────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(
                 onChanged: onSearch,
+                style: const TextStyle(color: _textDark, fontSize: 14),
                 decoration: InputDecoration(
                   hintText: "Cari nama / email",
-                  prefixIcon: const Icon(Icons.search),
+                  hintStyle: const TextStyle(color: _textHint),
+                  prefixIcon: const Icon(Icons.search, color: _textLight),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: _backgroundWhite,
                   contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
+                    borderSide: const BorderSide(color: _inputBorder),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: const BorderSide(color: _inputBorder),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide:
+                        const BorderSide(color: _primaryGreen, width: 1.5),
                   ),
                 ),
               ),
@@ -169,42 +241,55 @@ class _UsersSemuaState extends State<UsersSemua> {
 
             const SizedBox(height: 14),
 
-            // ---- TAB ----
-            Row(
-              children: [
-                _tabButton("Semua", 0),
-                _tabButton("Admin", 1),
-                _tabButton("Pelanggan", 2),
-              ],
+            // ── Tab ───────────────────────────────────────────────────
+            Container(
+              color: _backgroundWhite,
+              child: Row(
+                children: [
+                  _tabButton("Semua", 0),
+                  _tabButton("Admin", 1),
+                  _tabButton("Pelanggan", 2),
+                ],
+              ),
             ),
-            Row(
-              children: [
-                _tabLine(0),
-                _tabLine(1),
-                _tabLine(2),
-              ],
+            Container(
+              color: _backgroundWhite,
+              child: Row(
+                children: [
+                  _tabLine(0),
+                  _tabLine(1),
+                  _tabLine(2),
+                ],
+              ),
             ),
 
             const SizedBox(height: 5),
 
-            // ---- KONTEN ----
+            // ── Konten ────────────────────────────────────────────────
             Expanded(
               child: isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: Color(0xff2E9900)),
+                      child: CircularProgressIndicator(color: _primaryGreen),
                     )
                   : errorMsg.isNotEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.wifi_off,
-                                  size: 48, color: Colors.grey),
-                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFFFEBEB),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.wifi_off,
+                                    size: 36, color: Color(0xFFD32F2F)),
+                              ),
+                              const SizedBox(height: 14),
                               Text(
                                 errorMsg,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.grey),
+                                style: const TextStyle(color: _textLight),
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton.icon(
@@ -212,10 +297,14 @@ class _UsersSemuaState extends State<UsersSemua> {
                                 icon: const Icon(Icons.refresh),
                                 label: const Text("Coba Lagi"),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xff2E9900),
+                                  backgroundColor: _primaryGreen,
                                   foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(12)),
                                 ),
-                              )
+                              ),
                             ],
                           ),
                         )
@@ -223,21 +312,26 @@ class _UsersSemuaState extends State<UsersSemua> {
                           ? const Center(
                               child: Text(
                                 "Tidak ada data pengguna",
-                                style: TextStyle(color: Colors.grey),
+                                style: TextStyle(color: _textLight),
                               ),
                             )
                           : RefreshIndicator(
-                              color: const Color(0xff2E9900),
+                              color: _primaryGreen,
                               onRefresh: fetchUsers,
                               child: ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
                                 itemCount: filteredUsers.length,
                                 itemBuilder: (context, index) {
                                   final user = filteredUsers[index];
-                                  return UserTile(
+                                  return _UserTile(
                                     name: user["nama_lengkap"] ?? "-",
                                     email: user["email"] ?? "-",
                                     role: user["role"] ?? "-",
-                                    roleColor: _roleColor(user["role"] ?? ""),
+                                    roleColor:
+                                        _roleColor(user["role"] ?? ""),
+                                    roleBgColor:
+                                        _roleBgColor(user["role"] ?? ""),
                                   );
                                 },
                               ),
@@ -245,8 +339,8 @@ class _UsersSemuaState extends State<UsersSemua> {
             ),
           ],
         ),
-      ),
-    );
+      ), // Scaffold
+    ); // AnnotatedRegion
   }
 
   Widget _tabButton(String text, int index) {
@@ -255,14 +349,14 @@ class _UsersSemuaState extends State<UsersSemua> {
       child: InkWell(
         onTap: () => setState(() => selectedTab = index),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: Center(
             child: Text(
               text,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                color: active ? Colors.black : Colors.grey,
+                color: active ? _primaryGreen : _textLight,
               ),
             ),
           ),
@@ -275,55 +369,98 @@ class _UsersSemuaState extends State<UsersSemua> {
     return Expanded(
       child: Container(
         height: 2,
-        color: selectedTab == index ? Colors.green : Colors.transparent,
+        color: selectedTab == index ? _primaryGreen : Colors.transparent,
       ),
     );
   }
 }
 
-// ---- USER TILE ----
-class UserTile extends StatelessWidget {
+class _UserTile extends StatelessWidget {
   final String name, email, role;
   final Color roleColor;
+  final Color roleBgColor;
 
-  const UserTile({
-    super.key,
+  static const _textDark   = Color(0xFF1A2E1A);
+  static const _textLight  = Color(0xFF8A9E8A);
+  static const _cardBorder = Color(0xFFEEF5EE);
+
+  const _UserTile({
     required this.name,
     required this.email,
     required this.role,
     required this.roleColor,
+    required this.roleBgColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      tileColor: Colors.white,
-      leading: CircleAvatar(
-        backgroundColor: roleColor.withOpacity(0.2),
-        child: Icon(
-          role.toLowerCase() == "admin" ? Icons.admin_panel_settings : Icons.person,
-          color: roleColor,
-        ),
-      ),
-      title: Text(
-        name,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-      ),
-      subtitle: Text(email, style: const TextStyle(fontSize: 11)),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: roleColor.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          role.toUpperCase(),
-          style: TextStyle(
-            fontSize: 9,
-            fontWeight: FontWeight.bold,
-            color: roleColor,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2E9900).withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-        ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: roleBgColor,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              role.toLowerCase() == "admin"
+                  ? Icons.admin_panel_settings_rounded
+                  : Icons.person_rounded,
+              color: roleColor,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: _textDark),
+                ),
+                const SizedBox(height: 2),
+                Text(email,
+                    style:
+                        const TextStyle(fontSize: 12, color: _textLight)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: roleBgColor,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              role.toUpperCase(),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: roleColor,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

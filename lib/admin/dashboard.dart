@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_application_mbahmeth/admin/admin_crud/presentation/pages/product_list_page.dart';
@@ -27,7 +28,6 @@ class DashboardStats {
   factory DashboardStats.fromJson(Map<String, dynamic> json) {
     return DashboardStats(
       totalUsers: (json['total_users'] as num?)?.toInt() ?? 0,
-      // FIX: Gunakan key 'total_products' yang dihitung dari COUNT(*) tabel products
       totalProducts: (json['total_products'] as num?)?.toInt() ?? 0,
       totalOrders: (json['total_orders'] as num?)?.toInt() ?? 0,
       totalRevenue: (json['total_revenue'] as num?)?.toDouble() ?? 0.0,
@@ -49,7 +49,7 @@ class DashboardStats {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Fetch helper — dipanggil dari FutureBuilder
+// Fetch helper
 // ─────────────────────────────────────────────────────────────────────────────
 
 Future<DashboardStats> fetchDashboardStats() async {
@@ -69,7 +69,7 @@ Future<DashboardStats> fetchDashboardStats() async {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AdminDashboard — shell dengan BottomNav
+// AdminDashboard — FIX: PopScope menggantikan WillPopScope (deprecated)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class AdminDashboard extends StatefulWidget {
@@ -81,27 +81,64 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _currentIndex = 0;
+  DateTime? _lastBackPressed;
 
   void _navigate(int index) => setState(() => _currentIndex = index);
+
+  // FIX: Logika back ditangani di onPopInvokedWithResult (PopScope)
+  void _handlePop(bool didPop, dynamic result) {
+    if (didPop) return;
+
+    if (_currentIndex != 0) {
+      // Kembali ke tab Home jika bukan di Home
+      setState(() => _currentIndex = 0);
+      return;
+    }
+
+    // Di tab Home: tekan 2x untuk keluar
+    final now = DateTime.now();
+    if (_lastBackPressed == null ||
+        now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
+      _lastBackPressed = now;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Tekan sekali lagi untuk keluar"),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF1F6B00),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    } else {
+      SystemNavigator.pop();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final pages = [
       _HomePage(onNavigate: _navigate),
-      OrderListPage(),
-      const UsersSemua(),
-      const ProductListPage(),
-      const ProfilAdmin(),
+      // FIX: isEmbedded: true menyembunyikan tombol back di semua halaman tab
+      OrderListPage(isEmbedded: true),
+      const UsersSemua(isEmbedded: true),
+      const ProductListPage(isEmbedded: true),
+      const ProfilAdmin(isEmbedded: true),
     ];
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: pages,
-      ),
-      bottomNavigationBar: _BottomNav(
-        currentIndex: _currentIndex,
-        onTap: _navigate,
+    // FIX: PopScope menggantikan WillPopScope yang deprecated di Flutter 3.x+
+    // canPop: false mencegah pop otomatis, lalu kita tangani sendiri di callback
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: _handlePop,
+      child: Scaffold(
+        body: IndexedStack(
+          index: _currentIndex,
+          children: pages,
+        ),
+        bottomNavigationBar: _BottomNav(
+          currentIndex: _currentIndex,
+          onTap: _navigate,
+        ),
       ),
     );
   }
@@ -124,7 +161,7 @@ class _BottomNav extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2E9900).withOpacity(0.12),
+            color: const Color(0xFF2E9900).withValues(alpha: 0.12),
             blurRadius: 20,
             offset: const Offset(0, -4),
           ),
@@ -157,7 +194,7 @@ class _BottomNav extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _HomePage — StatefulWidget dengan FutureBuilder
+// _HomePage
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _HomePage extends StatefulWidget {
@@ -190,12 +227,12 @@ class _HomePageState extends State<_HomePage> {
       backgroundColor: const Color(0xFFF4FAF2),
       body: CustomScrollView(
         slivers: [
-          // ── AppBar ────────────────────────────────────────────────────────
           SliverAppBar(
             floating: true,
             snap: true,
             backgroundColor: Colors.transparent,
             elevation: 0,
+            automaticallyImplyLeading: false,
             flexibleSpace: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -207,23 +244,17 @@ class _HomePageState extends State<_HomePage> {
             ),
             title: Row(
               children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.eco_rounded, color: Colors.white, size: 20),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  "MbahMeth Admin",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                    letterSpacing: -0.3,
+                Image.asset(
+                  'assets/images/x2.png',
+                  height: 38,
+                  errorBuilder: (c, e, s) => Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.eco_rounded, color: Colors.white, size: 20),
                   ),
                 ),
               ],
@@ -236,7 +267,7 @@ class _HomePageState extends State<_HomePage> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.person_rounded, color: Colors.white, size: 20),
@@ -245,7 +276,6 @@ class _HomePageState extends State<_HomePage> {
             ],
           ),
 
-          // ── Body ──────────────────────────────────────────────────────────
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(18, 20, 18, 100),
             sliver: SliverList(
@@ -307,7 +337,7 @@ class _WelcomeBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2E9900).withOpacity(0.30),
+            color: const Color(0xFF2E9900).withValues(alpha: 0.30),
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),
@@ -337,7 +367,7 @@ class _WelcomeBanner extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.20),
+                    color: Colors.white.withValues(alpha: 0.20),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Text(
@@ -352,7 +382,7 @@ class _WelcomeBanner extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.agriculture_rounded, color: Colors.white, size: 34),
@@ -380,7 +410,7 @@ class _SectionLabel extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: const Color(0xFF2E9900).withOpacity(0.12),
+            color: const Color(0xFF2E9900).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: const Color(0xFF2E9900), size: 18),
@@ -401,7 +431,7 @@ class _SectionLabel extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _StatsGrid — REDESIGNED: 2 kartu besar atas + 2 kartu horizontal bawah
+// _StatsGrid
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _StatsGrid extends StatelessWidget {
@@ -413,7 +443,6 @@ class _StatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // ── Baris 1: Pendapatan (lebar penuh, paling menonjol) ──────────────
         _StatCardWide(
           label: "Total Pendapatan",
           value: DashboardStats.formatRevenue(stats.totalRevenue),
@@ -425,8 +454,6 @@ class _StatsGrid extends StatelessWidget {
           trendIcon: Icons.trending_up_rounded,
         ),
         const SizedBox(height: 12),
-
-        // ── Baris 2: 2 kartu sejajar ────────────────────────────────────────
         Row(
           children: [
             Expanded(
@@ -457,8 +484,6 @@ class _StatsGrid extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-
-        // ── Baris 3: Produk (full-width horizontal, warna beda) ─────────────
         _StatCardHorizontal(
           label: "Total Produk",
           value: DashboardStats.formatNumber(stats.totalProducts),
@@ -474,7 +499,7 @@ class _StatsGrid extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _StatCardWide — kartu lebar penuh, dark bg, untuk Revenue
+// _StatCardWide
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _StatCardWide extends StatelessWidget {
@@ -508,7 +533,7 @@ class _StatCardWide extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
+            color: Colors.black.withValues(alpha: 0.18),
             blurRadius: 20,
             offset: const Offset(0, 6),
           ),
@@ -516,7 +541,6 @@ class _StatCardWide extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Dekorasi lingkaran latar
           Positioned(
             right: -20,
             top: -20,
@@ -524,7 +548,7 @@ class _StatCardWide extends StatelessWidget {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.15),
+                color: accentColor.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
             ),
@@ -536,7 +560,7 @@ class _StatCardWide extends StatelessWidget {
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.08),
+                color: accentColor.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
             ),
@@ -547,13 +571,12 @@ class _StatCardWide extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Label + icon
                   Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: accentColor.withOpacity(0.18),
+                          color: accentColor.withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(icon, color: accentColor, size: 20),
@@ -562,20 +585,19 @@ class _StatCardWide extends StatelessWidget {
                       Text(
                         label,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
-                  // Trend badge
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: accentColor.withOpacity(0.2),
+                      color: accentColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: accentColor.withOpacity(0.4)),
+                      border: Border.all(color: accentColor.withValues(alpha: 0.4)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -610,7 +632,7 @@ class _StatCardWide extends StatelessWidget {
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 12,
                 ),
               ),
@@ -623,7 +645,7 @@ class _StatCardWide extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _StatCardSquare — kartu kotak putih untuk Pesanan & Pengguna
+// _StatCardSquare
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _StatCardSquare extends StatelessWidget {
@@ -657,7 +679,7 @@ class _StatCardSquare extends StatelessWidget {
         border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.08),
+            color: accentColor.withValues(alpha: 0.08),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -670,7 +692,7 @@ class _StatCardSquare extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.12),
+              color: accentColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(13),
             ),
             child: Icon(icon, color: accentColor, size: 22),
@@ -710,7 +732,7 @@ class _StatCardSquare extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _StatCardHorizontal — kartu lebar horizontal untuk Produk
+// _StatCardHorizontal
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _StatCardHorizontal extends StatelessWidget {
@@ -743,7 +765,7 @@ class _StatCardHorizontal extends StatelessWidget {
         border: Border.all(color: const Color(0xFFDFEFDF)),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.08),
+            color: accentColor.withValues(alpha: 0.08),
             blurRadius: 14,
             offset: const Offset(0, 4),
           ),
@@ -751,7 +773,6 @@ class _StatCardHorizontal extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Ikon
           Container(
             width: 54,
             height: 54,
@@ -764,7 +785,7 @@ class _StatCardHorizontal extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: accentColor.withOpacity(0.30),
+                  color: accentColor.withValues(alpha: 0.30),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -773,8 +794,6 @@ class _StatCardHorizontal extends StatelessWidget {
             child: Icon(icon, color: Colors.white, size: 26),
           ),
           const SizedBox(width: 16),
-
-          // Teks
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -798,8 +817,6 @@ class _StatCardHorizontal extends StatelessWidget {
               ],
             ),
           ),
-
-          // Nilai + chip kategori
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -817,7 +834,7 @@ class _StatCardHorizontal extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.10),
+                  color: accentColor.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -845,7 +862,7 @@ class _StatCardHorizontal extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// _StatsSkeleton — loading placeholder
+// _StatsSkeleton
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _StatsSkeleton extends StatelessWidget {
@@ -855,12 +872,11 @@ class _StatsSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Skeleton wide card
         Container(
           width: double.infinity,
           height: 110,
           decoration: BoxDecoration(
-            color: const Color(0xFF1A2E1A).withOpacity(0.08),
+            color: const Color(0xFF1A2E1A).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(22),
           ),
           child: const Center(
@@ -872,14 +888,13 @@ class _StatsSkeleton extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        // Skeleton 2 square cards
         Row(
           children: [
             Expanded(
               child: Container(
                 height: 110,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2E9900).withOpacity(0.08),
+                  color: const Color(0xFF2E9900).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
@@ -889,7 +904,7 @@ class _StatsSkeleton extends StatelessWidget {
               child: Container(
                 height: 110,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2E9900).withOpacity(0.08),
+                  color: const Color(0xFF2E9900).withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
@@ -897,12 +912,11 @@ class _StatsSkeleton extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        // Skeleton horizontal card
         Container(
           width: double.infinity,
           height: 80,
           decoration: BoxDecoration(
-            color: const Color(0xFF2E9900).withOpacity(0.08),
+            color: const Color(0xFF2E9900).withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(20),
           ),
         ),
@@ -928,7 +942,7 @@ class _StatsError extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFEBEB),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD32F2F).withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFFD32F2F).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -946,7 +960,7 @@ class _StatsError extends StatelessWidget {
                 Text(
                   "Periksa koneksi & server",
                   style: TextStyle(
-                    color: const Color(0xFFD32F2F).withOpacity(0.7),
+                    color: const Color(0xFFD32F2F).withValues(alpha: 0.7),
                     fontSize: 12,
                   ),
                 ),
@@ -1029,10 +1043,10 @@ class _QuickMenuCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: data.accent.withOpacity(0.18)),
+              border: Border.all(color: data.accent.withValues(alpha: 0.18)),
               boxShadow: [
                 BoxShadow(
-                  color: data.accent.withOpacity(0.08),
+                  color: data.accent.withValues(alpha: 0.08),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -1045,14 +1059,14 @@ class _QuickMenuCard extends StatelessWidget {
                   height: 46,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [data.accent.withOpacity(0.85), data.accent],
+                      colors: [data.accent.withValues(alpha: 0.85), data.accent],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: data.accent.withOpacity(0.3),
+                        color: data.accent.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -1085,7 +1099,7 @@ class _QuickMenuCard extends StatelessWidget {
                   width: 30,
                   height: 30,
                   decoration: BoxDecoration(
-                    color: data.accent.withOpacity(0.10),
+                    color: data.accent.withValues(alpha: 0.10),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.arrow_forward_ios_rounded, color: data.accent, size: 14),

@@ -637,6 +637,8 @@ class CartPageState extends State<CartPage> {
                             onTap: () {
                               if (widget.onNavTap != null) {
                                 widget.onNavTap!(0);
+                              } else if (Navigator.canPop(context)) {
+                                Navigator.pop(context);
                               }
                             },
                             child: Container(

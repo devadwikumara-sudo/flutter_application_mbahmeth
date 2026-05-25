@@ -106,11 +106,23 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  void _goToWelcome() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAF9),
-      body: Stack(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goToWelcome();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAF9),
+        body: Stack(
         children: [
           // Background Dekoratif
           Positioned(
@@ -341,6 +353,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
       ),
-    );
+    ),  // tutup Scaffold
+    );  // tutup PopScope
   }
 }
