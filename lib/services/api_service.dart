@@ -168,8 +168,6 @@ class ApiService {
   }
 
   // ── 9. Riwayat Pesanan (Customer) ─────────────────────────────────────────
-  // Mengembalikan semua order selain 'keranjang':
-  // Tertunda | Pengolahan | Selesai | Dibatalkan
   Future<List<dynamic>> getHistory(int userId) async {
     try {
       final response = await http.get(
@@ -431,7 +429,6 @@ class ApiService {
   }
 
   // ── 20. Ambil Semua Order untuk Admin Dashboard ───────────────────────────
-  // Mendukung semua status: Tertunda | Pengolahan | Selesai | Dibatalkan
   Future<List<OrderModel>> getAllOrders() async {
     try {
       final response =
@@ -470,8 +467,6 @@ class ApiService {
   }
 
   // ── 22. ★ UPDATE STATUS PESANAN oleh Admin ★ ─────────────────────────────
-  // status valid: 'Tertunda' | 'Pengolahan' | 'Selesai' | 'Dibatalkan'
-  // Jika Dibatalkan → PHP otomatis kembalikan stok produk
   Future<bool> updateOrderStatus({
     required int idOrder,
     required String status,
@@ -497,6 +492,89 @@ class ApiService {
     } catch (e) {
       debugPrint("Error updateOrderStatus: $e");
       return false;
+    }
+  }
+
+  // ── 23. ★ Ambil Statistik Dashboard Admin ★ ──────────────────────────────
+  // FIX: Tambah cache-busting (_t=timestamp) agar PHP tidak di-cache proxy/browser.
+  // FIX: Perbaiki penanganan response — decode body dulu, baru cek 'success'.
+  // FIX: Pesan error lebih deskriptif untuk memudahkan debugging.
+  Future<Map<String, dynamic>> getDashboardStats() async {
+    try {
+      // Tambahkan timestamp sebagai cache-buster agar selalu dapat data terbaru
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final url = Uri.parse("$adminUrl/dashboard_stats.php?_t=$ts");
+      debugPrint("getDashboardStats → GET $url");
+
+      final response = await http
+          .get(url, headers: {'Cache-Control': 'no-cache'})
+          .timeout(const Duration(seconds: 15));
+
+      debugPrint("getDashboardStats [${response.statusCode}]: ${response.body}");
+
+      if (response.statusCode != 200) {
+        return {
+          'success': false,
+          'message': 'HTTP ${response.statusCode}: Server tidak dapat diakses',
+        };
+      }
+
+      // FIX: Tangkap error parsing JSON secara terpisah agar pesan lebih jelas
+      Map<String, dynamic> data;
+      try {
+        data = json.decode(response.body) as Map<String, dynamic>;
+      } catch (_) {
+        debugPrint("getDashboardStats: Response bukan JSON valid → ${response.body}");
+        return {
+          'success': false,
+          'message': 'Response server tidak valid (bukan JSON)',
+        };
+      }
+
+      if (data['success'] == true) {
+        // FIX: Pastikan semua field ada agar DashboardStats.fromJson tidak crash
+        return {
+          'success': true,
+          'total_users': data['total_users'] ?? 0,
+          'total_products': data['total_products'] ?? 0,
+          'total_orders': data['total_orders'] ?? 0,
+          'total_revenue': data['total_revenue'] ?? 0,
+        };
+      }
+
+      debugPrint("getDashboardStats server error: ${data['message']}");
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Server mengembalikan success: false',
+      };
+    } on Exception catch (e) {
+      debugPrint("Error getDashboardStats: $e");
+      return {'success': false, 'message': e.toString()};
+    }
+  }
+
+  // ── 24. Ambil Rincian Pesanan Selesai (Admin) ─────────────────────────────
+  Future<Map<String, dynamic>> getCompletedOrders() async {
+    try {
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final response = await http
+          .get(
+            Uri.parse("$adminUrl/completed_orders.php?_t=$ts"),
+            headers: {'Cache-Control': 'no-cache'},
+          )
+          .timeout(const Duration(seconds: 15));
+
+      debugPrint("getCompletedOrders [${response.statusCode}]");
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        if (data['success'] == true) return data;
+        debugPrint("getCompletedOrders server error: ${data['message']}");
+      }
+      return {'success': false, 'message': 'Server error: ${response.statusCode}'};
+    } catch (e) {
+      debugPrint("Error getCompletedOrders: $e");
+      return {'success': false, 'message': e.toString()};
     }
   }
 }

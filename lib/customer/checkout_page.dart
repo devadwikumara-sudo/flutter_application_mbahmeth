@@ -25,7 +25,7 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  String _paymentMethod = 'Bayar Di Toko';
+  String? _paymentMethod;
   String? _deliveryMethod;
   bool _isProcessing = false;
   String _namaPembeli = '';
@@ -63,7 +63,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         idOrder: widget.idOrder,
         cartItems: widget.cartItems,
         totalHarga: widget.totalHarga,
-        metodePembayaran: _paymentMethod,
+        metodePembayaran: _paymentMethod ?? 'Bayar Di Toko',
         metodeAmbil: _deliveryMethod ?? 'Ambil Di Toko',
         tanggal: DateTime.now(),
         namaPembeli: _namaPembeli,
@@ -75,6 +75,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
   // Alur utama checkout (Langsung menuju SuccessPage tanpa Dialog)
   // ─────────────────────────────────────────────────────────────────────────
   Future<void> _prosesCheckout() async {
+    if (_paymentMethod == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Silakan pilih metode pembayaran terlebih dahulu'),
+          backgroundColor: AppColors.primaryRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
     if (_deliveryMethod == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -94,7 +106,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     // 1. Panggil API checkout
     final success = await _api.checkout(
       idOrder: widget.idOrder,
-      metodePembayaran: _paymentMethod,
+      metodePembayaran: _paymentMethod!,
       metodeAmbil: _deliveryMethod!,
     );
 
@@ -140,7 +152,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         builder: (_) => SuccessPage(
           idOrder: widget.idOrder,
           totalHarga: widget.totalHarga,
-          metodePembayaran: _paymentMethod,
+          metodePembayaran: _paymentMethod!,
           metodeAmbil: _deliveryMethod!,
         ),
       ),
@@ -221,14 +233,49 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     onChanged: (val) =>
                         setState(() => _paymentMethod = val),
                   ),
-                  const SizedBox(height: 10),
-                  _buildOptionCard(
-                    title: 'QRIS',
-                    icon: Icons.qr_code_scanner_rounded,
-                    value: 'Qris',
-                    groupValue: _paymentMethod,
-                    onChanged: (val) =>
-                        setState(() => _paymentMethod = val),
+                  // Info muncul setelah Bayar Di Toko dipilih
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (child, animation) => SizeTransition(
+                      sizeFactor: animation,
+                      child: FadeTransition(opacity: animation, child: child),
+                    ),
+                    child: _paymentMethod == 'Bayar Di Toko'
+                        ? Padding(
+                            key: const ValueKey('info-bayar'),
+                            padding: const EdgeInsets.only(top: 10),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.successLight,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: AppColors.primaryGreen
+                                        .withOpacity(0.4)),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.info_outline_rounded,
+                                      color: AppColors.primaryGreen, size: 18),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Barang bisa langsung diambil di toko setelah pesanan dikonfirmasi.',
+                                      style: TextStyle(
+                                        color: Color(0xFF166534),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(key: ValueKey('info-hidden')),
                   ),
                   const SizedBox(height: 20),
 
@@ -339,7 +386,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: _isProcessing ? null : _prosesCheckout,
+                    onPressed: (_isProcessing || _paymentMethod == null) ? null : _prosesCheckout,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryGreen,
                       disabledBackgroundColor:

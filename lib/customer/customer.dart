@@ -45,9 +45,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   // Urutan & info kategori
   static const List<Map<String, dynamic>> _categoryMeta = [
-    {'id': 3, 'label': 'Bibit / Benih', 'icon': Icons.grass_rounded},
-    {'id': 2, 'label': 'Pupuk', 'icon': Icons.science_rounded},
     {'id': 1, 'label': 'Obat Pertanian', 'icon': Icons.medical_services_rounded},
+    {'id': 2, 'label': 'Pupuk', 'icon': Icons.science_rounded},
+    {'id': 3, 'label': 'Bibit / Benih', 'icon': Icons.grass_rounded},
     {'id': 4, 'label': 'Alat Pertanian', 'icon': Icons.agriculture_rounded},
   ];
 

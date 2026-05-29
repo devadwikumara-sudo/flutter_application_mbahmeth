@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:flutter_application_mbahmeth/admin/admin_crud/presentation/pages/product_list_page.dart';
 import 'package:flutter_application_mbahmeth/admin/order_list_page.dart';
 import 'package:flutter_application_mbahmeth/admin/profil_admin.dart';
-import 'package:flutter_application_mbahmeth/core/config/app_config.dart';
+import 'package:flutter_application_mbahmeth/services/api_service.dart';
 import 'users_semua.dart';
+import 'completed_orders_page.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Model statistik dashboard
@@ -53,18 +52,13 @@ class DashboardStats {
 // ─────────────────────────────────────────────────────────────────────────────
 
 Future<DashboardStats> fetchDashboardStats() async {
-  final url = Uri.parse('${AppConfig.baseUrl}/admin/dashboard_stats.php');
-  final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-  if (response.statusCode != 200) {
-    throw Exception('Server error: ${response.statusCode}');
-  }
-
-  final body = jsonDecode(response.body) as Map<String, dynamic>;
+  // FIX: Gunakan ApiService yang sudah diperbaiki dengan cache-busting & error handling
+  final body = await ApiService().getDashboardStats();
   if (body['success'] != true) {
-    throw Exception(body['message'] ?? 'Response tidak valid');
+    // FIX: Tampilkan pesan error asli dari server, bukan pesan generik
+    final msg = body['message'] as String? ?? 'Gagal mengambil statistik';
+    throw Exception(msg);
   }
-
   return DashboardStats.fromJson(body);
 }
 
@@ -83,7 +77,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int _currentIndex = 0;
   DateTime? _lastBackPressed;
 
-  void _navigate(int index) => setState(() => _currentIndex = index);
+  // FIX: GlobalKey untuk memanggil refreshStats() saat kembali ke tab Home
+  final GlobalKey<_HomePageState> _homeKey = GlobalKey<_HomePageState>();
+
+  void _navigate(int index) {
+    // FIX: Refresh statistik setiap kali tab Home (index 0) dibuka
+    if (index == 0) {
+      _homeKey.currentState?.refreshStats();
+    }
+    setState(() => _currentIndex = index);
+  }
 
   // FIX: Logika back ditangani di onPopInvokedWithResult (PopScope)
   void _handlePop(bool didPop, dynamic result) {
@@ -91,6 +94,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
     if (_currentIndex != 0) {
       // Kembali ke tab Home jika bukan di Home
+      _homeKey.currentState?.refreshStats(); // FIX: refresh saat balik via tombol back
       setState(() => _currentIndex = 0);
       return;
     }
@@ -117,7 +121,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      _HomePage(onNavigate: _navigate),
+      _HomePage(key: _homeKey, onNavigate: _navigate), // FIX: key untuk akses refreshStats()
       // FIX: isEmbedded: true menyembunyikan tombol back di semua halaman tab
       OrderListPage(isEmbedded: true),
       const UsersSemua(isEmbedded: true),
@@ -200,7 +204,7 @@ class _BottomNav extends StatelessWidget {
 class _HomePage extends StatefulWidget {
   final void Function(int) onNavigate;
 
-  const _HomePage({required this.onNavigate});
+  const _HomePage({super.key, required this.onNavigate});
 
   @override
   State<_HomePage> createState() => _HomePageState();
@@ -221,11 +225,24 @@ class _HomePageState extends State<_HomePage> {
     });
   }
 
+  // FIX: Method publik dipanggil dari _AdminDashboardState saat tab Home aktif
+  void refreshStats() {
+    setState(() {
+      _statsFuture = fetchDashboardStats();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4FAF2),
-      body: CustomScrollView(
+      body: RefreshIndicator(
+        color: const Color(0xFF2E9900),
+        onRefresh: () async {
+          setState(() => _statsFuture = fetchDashboardStats());
+          await _statsFuture;
+        },
+        child: CustomScrollView(
         slivers: [
           SliverAppBar(
             floating: true,
@@ -260,6 +277,20 @@ class _HomePageState extends State<_HomePage> {
               ],
             ),
             actions: [
+              // ── Tombol Refresh ──────────────────────────────────────────────
+              GestureDetector(
+                onTap: refreshStats,
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                ),
+              ),
               GestureDetector(
                 onTap: () => widget.onNavigate(4),
                 child: Container(
@@ -298,7 +329,7 @@ class _HomePageState extends State<_HomePage> {
                             onRetry: _retry,
                           );
                         }
-                        return _StatsGrid(stats: snapshot.data!);
+                        return _StatsGrid(stats: snapshot.data!, onRefresh: refreshStats);
                       default:
                         return const _StatsSkeleton();
                     }
@@ -314,12 +345,10 @@ class _HomePageState extends State<_HomePage> {
           ),
         ],
       ),
+      ), // tutup RefreshIndicator
     );
   }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// _WelcomeBanner
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _WelcomeBanner extends StatelessWidget {
@@ -436,22 +465,56 @@ class _SectionLabel extends StatelessWidget {
 
 class _StatsGrid extends StatelessWidget {
   final DashboardStats stats;
+  // FIX: Tambah callback refresh agar tombol refresh bisa dipasang langsung di grid
+  final VoidCallback onRefresh;
 
-  const _StatsGrid({required this.stats});
+  const _StatsGrid({required this.stats, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _StatCardWide(
-          label: "Total Pendapatan",
-          value: DashboardStats.formatRevenue(stats.totalRevenue),
-          subtitle: "Dari semua pesanan selesai",
-          icon: Icons.account_balance_wallet_rounded,
-          accentColor: const Color(0xFF2E9900),
-          bgColor: const Color(0xFF1A2E1A),
-          trendLabel: "checkout",
-          trendIcon: Icons.trending_up_rounded,
+        // ── Card Pendapatan: bisa diklik → halaman rincian pesanan selesai ──
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const CompletedOrdersPage(),
+              ),
+            );
+          },
+          child: Stack(
+            children: [
+              _StatCardWide(
+                label: "Total Pendapatan",
+                value: DashboardStats.formatRevenue(stats.totalRevenue),
+                subtitle: "Dari semua pesanan selesai  •  Tap untuk rincian",
+                icon: Icons.account_balance_wallet_rounded,
+                accentColor: const Color(0xFF2E9900),
+                bgColor: const Color(0xFF1A2E1A),
+                trendLabel: "Selesai",
+                trendIcon: Icons.trending_up_rounded,
+              ),
+              // ── Ikon panah kecil di pojok kanan bawah sebagai hint klik ──
+              Positioned(
+                right: 14,
+                bottom: 14,
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E9900).withValues(alpha: 0.25),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: Colors.white,
+                    size: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         Row(
@@ -460,7 +523,7 @@ class _StatsGrid extends StatelessWidget {
               child: _StatCardSquare(
                 label: "Pesanan",
                 value: DashboardStats.formatNumber(stats.totalOrders),
-                subtitle: "Selesai checkout",
+                subtitle: "Pesanan selesai",
                 icon: Icons.receipt_long_rounded,
                 accentColor: const Color(0xFF2E9900),
                 bgColor: Colors.white,
@@ -493,7 +556,44 @@ class _StatsGrid extends StatelessWidget {
           chipIcon: Icons.category_rounded,
           accentColor: const Color(0xFF1F6B00),
         ),
+        // FIX: Tombol refresh produk agar admin bisa memperbarui data tanpa scroll ke atas
+        const SizedBox(height: 10),
+        _RefreshStatsButton(onRefresh: onRefresh),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _RefreshStatsButton — tombol refresh di bawah kartu statistik
+// FIX: Ditambahkan agar admin dapat langsung memperbarui statistik & data produk
+//      tanpa harus scroll ke atas mencari tombol refresh di AppBar
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _RefreshStatsButton extends StatelessWidget {
+  final VoidCallback onRefresh;
+
+  const _RefreshStatsButton({required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onRefresh,
+        icon: const Icon(Icons.refresh_rounded, size: 16),
+        label: const Text(
+          "Perbarui Statistik & Produk",
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF2E9900),
+          side: const BorderSide(color: Color(0xFF2E9900), width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          backgroundColor: const Color(0xFF2E9900).withValues(alpha: 0.04),
+        ),
+      ),
     );
   }
 }
@@ -935,45 +1035,99 @@ class _StatsError extends StatelessWidget {
 
   const _StatsError({required this.message, required this.onRetry});
 
+  // FIX: Tentukan ikon & pesan berdasarkan jenis error
+  IconData get _icon {
+    final m = message.toLowerCase();
+    if (m.contains('json') || m.contains('valid')) return Icons.data_object_rounded;
+    if (m.contains('timeout') || m.contains('timed out')) return Icons.timer_off_rounded;
+    if (m.contains('http') || m.contains('server')) return Icons.dns_rounded;
+    return Icons.wifi_off_rounded;
+  }
+
+  String get _hint {
+    final m = message.toLowerCase();
+    if (m.contains('json') || m.contains('valid')) return 'Response server tidak valid — cek log PHP';
+    if (m.contains('timeout') || m.contains('timed out')) return 'Server lambat merespons — coba lagi';
+    if (m.contains('http 5')) return 'Error di sisi server (5xx) — cek dashboard_stats.php';
+    if (m.contains('http 4')) return 'File PHP tidak ditemukan (4xx) — cek path URL';
+    if (m.contains('connection') || m.contains('koneksi')) return 'Tidak dapat terhubung ke server';
+    return 'Periksa koneksi & pastikan server aktif';
+  }
+
   @override
   Widget build(BuildContext context) {
+    // FIX: Tampilkan pesan error asli (bukan hanya ikon wifi) agar mudah debugging
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFFFEBEB),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFD32F2F).withValues(alpha: 0.3)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.wifi_off_rounded, color: Color(0xFFD32F2F), size: 28),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Gagal memuat statistik",
-                  style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFFD32F2F)),
+          Row(
+            children: [
+              Icon(_icon, color: const Color(0xFFD32F2F), size: 24),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Gagal memuat statistik",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFD32F2F),
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _hint,
+                      style: TextStyle(
+                        color: const Color(0xFFD32F2F).withValues(alpha: 0.7),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  "Periksa koneksi & server",
-                  style: TextStyle(
-                    color: const Color(0xFFD32F2F).withValues(alpha: 0.7),
-                    fontSize: 12,
-                  ),
+              ),
+              TextButton(
+                onPressed: onRetry,
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF2E9900),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-              ],
-            ),
+                child: const Text(
+                  "Coba Lagi",
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: onRetry,
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF2E9900),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          // FIX: Tampilkan detail error mentah agar admin bisa mendiagnosa masalah
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFD32F2F).withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text("Coba Lagi", style: TextStyle(fontWeight: FontWeight.w700)),
+            child: Text(
+              message.replaceFirst('Exception: ', ''),
+              style: const TextStyle(
+                color: Color(0xFFB71C1C),
+                fontSize: 11,
+                fontFamily: 'monospace',
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),

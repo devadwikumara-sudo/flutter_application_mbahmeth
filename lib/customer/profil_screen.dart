@@ -97,21 +97,32 @@ class _ProfileScreenState extends State<ProfileScreen>
       final orders = await ApiService().getOrdersByUser(userId);
       if (!mounted) return;
 
-      // Hitung statistik:
-      // - 'checkout' = pesanan sudah selesai/dikonfirmasi
-      // - 'keranjang' = masih di keranjang (diproses / belum checkout)
-      // Catatan: getOrdersByUser mengembalikan semua order termasuk 'keranjang'.
-      // Kita tampilkan 'keranjang' sebagai "Diproses" di profil saja (bukan di history).
-      final selesai =
-          orders.where((o) => o['status']?.toString() == 'checkout').length;
-      final diproses =
-          orders.where((o) => o['status']?.toString() == 'keranjang').length;
+      // Status yang dianggap "aktif / diproses":
+      // 'Tertunda' = baru checkout, menunggu konfirmasi admin
+      // 'Diproses' = sudah dikonfirmasi admin, sedang disiapkan
+      const statusDiproses = {'Tertunda', 'Diproses'};
+
+      // Status yang dianggap "selesai"
+      const statusSelesai = {'Selesai'};
+
+      // Hitung hanya order yang sudah melewati tahap keranjang
+      final nonKeranjang = orders.where(
+        (o) => o['status']?.toString() != 'keranjang',
+      ).toList();
+
+      final selesai = nonKeranjang
+          .where((o) => statusSelesai.contains(o['status']?.toString()))
+          .length;
+
+      final diproses = nonKeranjang
+          .where((o) => statusDiproses.contains(o['status']?.toString()))
+          .length;
 
       setState(() {
-        _totalSelesai = selesai;
+        _totalSelesai  = selesai;
         _totalDiproses = diproses;
-        _totalPesanan = selesai + diproses;
-        _loadingStats = false;
+        _totalPesanan  = nonKeranjang.length; // semua order yang sudah checkout
+        _loadingStats  = false;
       });
     } catch (_) {
       if (mounted) setState(() => _loadingStats = false);
