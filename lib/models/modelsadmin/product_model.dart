@@ -1,4 +1,4 @@
-import '../../core/config/app_config.dart'; // 1. Pastikan import path-nya benar
+import '../../core/config/app_config.dart'; // 1. models digunakan catalog dan detail
 
 class ProductModel {
   final String? id;
@@ -21,16 +21,12 @@ class ProductModel {
     this.category,
   });
 
-  // 2. AMBIL DARI APPCONFIG: Jangan tulis manual "localhost" lagi
-  // Kita gunakan AppConfig.imageServerUrl yang sudah berisi IP Address
   static const String imageBaseUrl = AppConfig.imageServerUrl;
 
-  // Getter ini sekarang akan otomatis mengikuti IP yang ada di AppConfig
   String get fullImageUrl => "$imageBaseUrl$imagePath";
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
-      // Gunakan toString() untuk menjaga keamanan data jika JSON berbentuk int
       id: json['id_product']?.toString(),
       idCategory: json['id_category']?.toString(),
       name: json['nama_produk'] ?? '',

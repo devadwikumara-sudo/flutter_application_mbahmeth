@@ -11,7 +11,7 @@ class ApiService {
   static const String customerUrl = "${AppConfig.baseUrl}/customer";
   static const String imageUrl = AppConfig.imageServerUrl;
 
-  // ── 1. Login ──────────────────────────────────────────────────────────────
+  // 1. Login customer dan admin
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
@@ -25,7 +25,7 @@ class ApiService {
     }
   }
 
-  // ── 2. Ambil Produk per Kategori (Customer) ───────────────────────────────
+  // 2. Ambil Produk per Kategori catalog 
   Future<List<dynamic>> getProducts(int idCategory) async {
     try {
       final response = await http.get(
@@ -42,25 +42,7 @@ class ApiService {
     }
   }
 
-  // ── 3. Ambil Produk Terlaris untuk Halaman Beranda ─────────────────────────
-  Future<List<dynamic>> getFeaturedProducts() async {
-    try {
-      final response = await http.get(
-        Uri.parse("$customerUrl/get_featured_products.php"),
-      );
-      if (response.statusCode == 200) {
-        final decoded = json.decode(response.body);
-        if (decoded is List) return decoded;
-        return [];
-      }
-      return [];
-    } catch (e) {
-      debugPrint("Error getFeaturedProducts: $e");
-      return [];
-    }
-  }
-
-  // ── 4. Tambah ke Keranjang ────────────────────────────────────────────────
+  // 4. Tambah ke Keranjang dari detail dart
   Future<Map<String, dynamic>> addToCart({
     required int userId,
     required int productId,
@@ -87,7 +69,7 @@ class ApiService {
     }
   }
 
-  // ── 5. Ambil Isi Keranjang ────────────────────────────────────────────────
+  // 5. Ambil Isi Keranjang 
   Future<Map<String, dynamic>> getCart(int userId) async {
     try {
       final response = await http.get(
@@ -102,7 +84,7 @@ class ApiService {
     }
   }
 
-  // ── 6. Update Jumlah Item di Keranjang ────────────────────────────────────
+  // 6. Update Jumlah Item di Keranjang 
   Future<bool> updateCartItem({
     required int idDetail,
     required int jumlah,
@@ -123,7 +105,7 @@ class ApiService {
     }
   }
 
-  // ── 7. Hapus Item dari Keranjang ──────────────────────────────────────────
+  // 7. Hapus Item dari Keranjang 
   Future<bool> deleteCartItem(int idDetail) async {
     try {
       final response = await http.post(
@@ -141,7 +123,7 @@ class ApiService {
     }
   }
 
-  // ── 8. Checkout → status awal "Tertunda" ──────────────────────────────────
+  // 8. Checkout
   Future<bool> checkout({
     required int idOrder,
     required String metodePembayaran,
@@ -167,7 +149,7 @@ class ApiService {
     }
   }
 
-  // ── 9. Riwayat Pesanan (Customer) ─────────────────────────────────────────
+  // 9. history 
   Future<List<dynamic>> getHistory(int userId) async {
     try {
       final response = await http.get(
@@ -184,7 +166,7 @@ class ApiService {
     }
   }
 
-  // ── 10. Ambil Semua Order (Keranjang & History) ───────────────────────────
+  // 10. Ambil Semua Order profil customer
   Future<List<dynamic>> getOrdersByUser(int userId) async {
     try {
       final response = await http.get(
@@ -202,7 +184,7 @@ class ApiService {
     }
   }
 
-  // ── 11. Upload Foto Profil ────────────────────────────────────────────────
+  // 11. Upload Foto Profil 
   Future<String?> uploadFotoProfil({
     required int userId,
     required String filePath,
@@ -238,7 +220,7 @@ class ApiService {
     }
   }
 
-  // ===================== BAGIAN ADMIN (PRODUK) =====================
+  // BAGIAN ADMIN 
 
   // ── 12. Ambil Semua Produk (Admin) ────────────────────────────────────────
   Future<List<ProductModel>> getAdminProducts() async {
@@ -352,43 +334,6 @@ class ApiService {
     }
   }
 
-  // ===================== BAGIAN ADMIN (ORDERS) =====================
-
-  // ── 16. Ambil Semua Order (Admin) ─────────────────────────────────────────
-  Future<List<OrderModel>> getOrders() async {
-    try {
-      final response = await http.get(Uri.parse("$adminUrl/orders/read.php"));
-      if (response.statusCode == 200) {
-        List jsonResponse = json.decode(response.body);
-        return jsonResponse.map((data) => OrderModel.fromJson(data)).toList();
-      }
-      return [];
-    } catch (e) {
-      debugPrint("Error Fetch Orders: $e");
-      return [];
-    }
-  }
-
-  // ── 17. Ambil Order berdasarkan Status (Admin) ────────────────────────────
-  Future<List<OrderModel>> getOrdersByStatus(String status) async {
-    try {
-      final response = await http.get(
-        Uri.parse("$adminUrl/read_orders.php?status=$status"),
-      );
-      debugPrint("Fetch Filter Status: ${response.statusCode}");
-      debugPrint("Response Body: ${response.body}");
-
-      if (response.statusCode == 200) {
-        List jsonResponse = json.decode(response.body);
-        return jsonResponse.map((data) => OrderModel.fromJson(data)).toList();
-      }
-      return [];
-    } catch (e) {
-      debugPrint("Error getOrdersByStatus: $e");
-      return [];
-    }
-  }
-
   // ── 18. Ambil Data Profil Admin ───────────────────────────────────────────
   Future<Map<String, dynamic>> getAdminProfil(String idUser) async {
     try {
@@ -408,7 +353,7 @@ class ApiService {
     }
   }
 
-  // ── 19. Ambil Semua Pengguna (Admin) ──────────────────────────────────────
+  // 19. Ambil Semua user
   Future<Map<String, dynamic>> getAllUsers() async {
     try {
       final response =
@@ -428,26 +373,7 @@ class ApiService {
     }
   }
 
-  // ── 20. Ambil Semua Order untuk Admin Dashboard ───────────────────────────
-  Future<List<OrderModel>> getAllOrders() async {
-    try {
-      final response =
-          await http.get(Uri.parse("$adminUrl/get_orders.php"));
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        if (data['success'] == true) {
-          List list = data['data'];
-          return list.map((e) => OrderModel.fromJson(e)).toList();
-        }
-      }
-      return [];
-    } catch (e) {
-      debugPrint("Error getAllOrders: $e");
-      return [];
-    }
-  }
-
-  // ── 21. Fetch All Orders (alias untuk order_list_page) ────────────────────
+  // 21. order page
   Future<List<OrderModel>> fetchAllOrders() async {
     try {
       final response =
@@ -466,7 +392,7 @@ class ApiService {
     }
   }
 
-  // ── 22. ★ UPDATE STATUS PESANAN oleh Admin ★ ─────────────────────────────
+  // 22.update status pesanan di order
   Future<bool> updateOrderStatus({
     required int idOrder,
     required String status,
@@ -495,10 +421,7 @@ class ApiService {
     }
   }
 
-  // ── 23. ★ Ambil Statistik Dashboard Admin ★ ──────────────────────────────
-  // FIX: Tambah cache-busting (_t=timestamp) agar PHP tidak di-cache proxy/browser.
-  // FIX: Perbaiki penanganan response — decode body dulu, baru cek 'success'.
-  // FIX: Pesan error lebih deskriptif untuk memudahkan debugging.
+  // 23.Ambil Statistik Dashboard Admin 
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
       // Tambahkan timestamp sebagai cache-buster agar selalu dapat data terbaru
@@ -553,7 +476,7 @@ class ApiService {
     }
   }
 
-  // ── 24. Ambil Rincian Pesanan Selesai (Admin) ─────────────────────────────
+  // 24. Ambil Rincian Pesanan Selesai
   Future<Map<String, dynamic>> getCompletedOrders() async {
     try {
       final ts = DateTime.now().millisecondsSinceEpoch;

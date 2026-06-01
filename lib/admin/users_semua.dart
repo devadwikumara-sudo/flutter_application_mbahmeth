@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_application_mbahmeth/services/api_service.dart';
 
 class UsersSemua extends StatefulWidget {
-  // FIX: Parameter isEmbedded — ketika true (dipakai sebagai tab di dashboard),
-  //      tombol back di header disembunyikan agar tidak menyebabkan blackscreen.
+
   final bool isEmbedded;
 
   const UsersSemua({super.key, this.isEmbedded = false});

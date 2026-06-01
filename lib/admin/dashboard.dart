@@ -47,10 +47,6 @@ class DashboardStats {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Fetch helper
-// ─────────────────────────────────────────────────────────────────────────────
-
 Future<DashboardStats> fetchDashboardStats() async {
   // FIX: Gunakan ApiService yang sudah diperbaiki dengan cache-busting & error handling
   final body = await ApiService().getDashboardStats();
@@ -61,10 +57,6 @@ Future<DashboardStats> fetchDashboardStats() async {
   }
   return DashboardStats.fromJson(body);
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// AdminDashboard — FIX: PopScope menggantikan WillPopScope (deprecated)
-// ─────────────────────────────────────────────────────────────────────────────
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});

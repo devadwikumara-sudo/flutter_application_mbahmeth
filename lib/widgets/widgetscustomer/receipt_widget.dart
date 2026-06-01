@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Widget struk pesanan — dipakai oleh ReceiptService untuk di-screenshot.
-/// Bisa juga ditampilkan di dalam dialog/modal sebelum disimpan.
+// di gunakan di receipt, notifikasi, dan checkout
 class ReceiptWidget extends StatelessWidget {
   final int idOrder;
   final List<Map<String, dynamic>> cartItems;

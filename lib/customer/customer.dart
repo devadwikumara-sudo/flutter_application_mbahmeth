@@ -26,8 +26,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   final GlobalKey<CartPageState> _cartKey = GlobalKey<CartPageState>();
   final ApiService _api = ApiService();
-
-  // ── Data per kategori (id: 1=Obat, 2=Pupuk, 3=Bibit, 4=Alat) ──
   Map<int, List<dynamic>> _categoryProducts = {};
   bool _loadingProducts = true;
 

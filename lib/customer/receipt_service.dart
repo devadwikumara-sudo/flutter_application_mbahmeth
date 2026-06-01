@@ -5,12 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:gal/gal.dart';
 
-/// Layanan untuk me-render [ReceiptWidget] menjadi gambar
-/// lalu menyimpannya ke galeri perangkat.
-///
-/// Dependency yang dibutuhkan di pubspec.yaml:
-///   image_gallery_saver: ^2.0.3
-///   permission_handler: ^11.3.0   (Android / iOS permission)
 class ReceiptService {
   /// Render widget [child] ke bitmap PNG lalu simpan ke galeri.
   ///

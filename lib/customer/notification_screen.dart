@@ -3,13 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_mbahmeth/services/api_service.dart';
 import 'package:flutter_application_mbahmeth/core/config/app_config.dart';
 import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
-import 'package:flutter_application_mbahmeth/customer/receipt_widget.dart';
+import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/receipt_widget.dart';
 import 'package:flutter_application_mbahmeth/customer/receipt_service.dart';
 
-/// Prefix kunci SharedPreferences untuk menyimpan daftar id_order
-/// yang stuknya sudah diambil (disimpan ke galeri).
-/// Key dibuat per-user: 'receipt_taken_ids_<id_user>'
-/// agar data tidak tercampur antar akun dan tetap ada walau logout/login ulang.
 const String _kReceiptTakenKeyPrefix = 'receipt_taken_ids_';
 
 /// Helper untuk mendapatkan key yang terikat ke user tertentu.
@@ -51,10 +47,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.reload();
       final userId = prefs.getInt('id_user') ?? 0;
-
-      // Ambil daftar id_order yang stuknya sudah diambil — pakai key per-user
-      // sehingga data tetap ada walau logout/login ulang dengan akun yang sama,
-      // dan tidak tercampur dengan akun lain di perangkat yang sama.
       _currentUserId = userId;
       final takenList = prefs.getStringList(_receiptKeyForUser(userId)) ?? [];
       _receiptTakenIds = takenList.map((e) => int.tryParse(e) ?? -1).toSet();
@@ -83,7 +75,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _markReceiptTaken(int idOrder) async {
     final prefs = await SharedPreferences.getInstance();
     _receiptTakenIds.add(idOrder);
-    // Gunakan key yang terikat ke userId agar persisten meski logout/login ulang
     await prefs.setStringList(
       _receiptKeyForUser(_currentUserId),
       _receiptTakenIds.map((e) => e.toString()).toList(),

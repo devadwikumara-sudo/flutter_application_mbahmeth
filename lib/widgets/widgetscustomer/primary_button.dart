@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
+import 'package:flutter_application_mbahmeth/theme/app_colors.dart'; // sebagai tombol di detail dan checkout
 
-/// Tombol utama dengan gradient, animasi tekan, state loading,
-/// dan dukungan ikon.
 class PrimaryButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
   final Widget? icon;
   final bool isLoading;
-  final bool isOutlined;    // Varian outlined (border hijau, bg transparan)
+  final bool isOutlined;
   final Color? backgroundColor;
   final double height;
   final double? width;

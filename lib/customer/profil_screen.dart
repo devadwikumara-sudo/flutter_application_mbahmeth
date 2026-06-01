@@ -97,15 +97,10 @@ class _ProfileScreenState extends State<ProfileScreen>
       final orders = await ApiService().getOrdersByUser(userId);
       if (!mounted) return;
 
-      // Status yang dianggap "aktif / diproses":
-      // 'Tertunda' = baru checkout, menunggu konfirmasi admin
-      // 'Diproses' = sudah dikonfirmasi admin, sedang disiapkan
       const statusDiproses = {'Tertunda', 'Diproses'};
 
-      // Status yang dianggap "selesai"
       const statusSelesai = {'Selesai'};
 
-      // Hitung hanya order yang sudah melewati tahap keranjang
       final nonKeranjang = orders.where(
         (o) => o['status']?.toString() != 'keranjang',
       ).toList();

@@ -48,7 +48,6 @@ class CartPageState extends State<CartPage> {
       _error = null;
     });
 
-    // Jika userId belum ada (belum login), langsung tampilkan kosong
     if (widget.userId == 0) {
       setState(() {
         _idOrder = null;
@@ -60,10 +59,6 @@ class CartPageState extends State<CartPage> {
 
     try {
       final data = await _api.getCart(widget.userId);
-
-      // ── FIX Bug 1 UTAMA: Tangani status 'success' DAN 'empty' ──
-      // Sebelumnya hanya cek 'success', sehingga ketika server kirim 'empty'
-      // (keranjang kosong), kondisi else men-set _error dan tampilkan error state.
       if (data['status'] == 'success' || data['status'] == 'empty') {
         setState(() {
           _idOrder = data['id_order'] != null

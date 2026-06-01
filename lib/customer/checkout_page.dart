@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_mbahmeth/services/api_service.dart';
 import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
 import 'package:flutter_application_mbahmeth/customer/success_page.dart';
-import 'package:flutter_application_mbahmeth/customer/receipt_widget.dart';
+import 'package:flutter_application_mbahmeth/widgets/widgetscustomer/receipt_widget.dart';
 import 'package:flutter_application_mbahmeth/customer/receipt_service.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -54,9 +54,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Simpan struk ke galeri menggunakan ReceiptService (off-screen render)
-  // ─────────────────────────────────────────────────────────────────────────
   Future<bool> _saveReceiptToGallery() async {
     return ReceiptService.saveReceiptToGallery(
       child: ReceiptWidget(
@@ -71,9 +68,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Alur utama checkout (Langsung menuju SuccessPage tanpa Dialog)
-  // ─────────────────────────────────────────────────────────────────────────
+
   Future<void> _prosesCheckout() async {
     if (_paymentMethod == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -103,7 +98,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     setState(() => _isProcessing = true);
 
-    // 1. Panggil API checkout
     final success = await _api.checkout(
       idOrder: widget.idOrder,
       metodePembayaran: _paymentMethod!,
@@ -125,7 +119,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       return;
     }
 
-    // 2. Jalankan proses simpan struk di latar belakang (tanpa menunggu dialog)
+    // Jalankan proses simpan struk di latar belakang (tanpa menunggu dialog)
     // Fungsi ini tidak menggunakan kata kunci 'await' agar proses navigasi tidak tertahan
     _saveReceiptToGallery().then((saved) {
       if (!saved && mounted) {

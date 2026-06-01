@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_mbahmeth/theme/app_colors.dart';
+import 'package:flutter_application_mbahmeth/theme/app_colors.dart'; // untuk halaman login register dan ubah nama profil
 
-/// TextField modern dengan efek fokus animasi, label mengambang,
-/// dan dukungan ikon prefix/suffix.
 class CustomTextField extends StatefulWidget {
   final String hintText;
   final String? labelText;
