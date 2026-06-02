@@ -69,7 +69,6 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
       return;
     }
 
-    // ✅ Gunakan _categoryMapping yang sudah didefinisikan sebagai field class
     final String selectedId = _categoryMapping[_selectedCategory] ?? '1';
 
     showDialog(
@@ -367,9 +366,7 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
           isExpanded: true,
           style: const TextStyle(color: _textDark, fontSize: 14),
           dropdownColor: _backgroundWhite,
-          // ✅ FIX: Urutan dropdown diselaraskan dengan ID database
-          //   SEBELUM: ['Pupuk','Benih','Alat','Obat'] ← acak, tidak sesuai ID
-          //   SESUDAH: ['Obat','Pupuk','Benih','Alat'] ← sesuai ID 1,2,3,4
+          // Urutan dropdown selaras dengan ID database
           items: <String>['Obat', 'Pupuk', 'Benih', 'Alat'].map((String value) {
             return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),

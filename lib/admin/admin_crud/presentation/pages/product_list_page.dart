@@ -68,8 +68,7 @@ class _ProductListPageState extends State<ProductListPage>
 
     final int tab = _tabController.index;
     if (tab == 1) {
-      // ✅ FIX: Batas stok "Menipis" diubah dari < 20 menjadi < 10
-      //  SEBELUM (BUG): result = result.where((p) => p.stock > 0 && p.stock < 20).toList();
+      // batas menipis < 10
       result = result.where((p) => p.stock > 0 && p.stock < 10).toList();
     } else if (tab == 2) {
       result = result.where((p) => p.stock == 0).toList();
@@ -178,8 +177,7 @@ class _ProductListPageState extends State<ProductListPage>
               unselectedLabelStyle: const TextStyle(fontSize: 13),
               tabs: const [
                 Tab(text: "Semua"),
-                // ✅ FIX: Label tab diperbarui agar mencerminkan batas baru (< 10)
-                Tab(text: "Menipis (< 10)"),
+                Tab(text: "Menipis"),
                 Tab(text: "Habis"),
               ],
             ),

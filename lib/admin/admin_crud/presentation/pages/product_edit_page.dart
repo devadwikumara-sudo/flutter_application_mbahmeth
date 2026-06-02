@@ -25,7 +25,7 @@ class _ProductEditPageState extends State<ProductEditPage> {
   static const _successLight     = Color(0xFFE8F5E2);
   static const _primaryRed       = Color(0xFFD32F2F);
 
-  // ✅ FIX: Mapping kategori diurutkan sesuai ID di database (1=Obat, 2=Pupuk, 3=Benih, 4=Alat)
+  // Mapping kategori diurutkan sesuai ID di database (1=Obat, 2=Pupuk, 3=Benih, 4=Alat)
   //         dan konsisten dengan product_create_page.dart
   final Map<String, String> categoryMapping = {
     'Obat'  : '1',
@@ -49,11 +49,6 @@ class _ProductEditPageState extends State<ProductEditPage> {
   String? _selectedCategory;
   XFile? _newImageFile;
   final ImagePicker _picker = ImagePicker();
-
-  // ✅ FIX: Hapus imageServerBase yang hardcoded ke IP berbeda.
-  //         Gunakan AppConfig.imageServerUrl sebagai satu-satunya sumber kebenaran.
-  //  SEBELUM (BUG): final String imageServerBase = "http://172.16.103.30/toko_mbahmeth/public/assets/products/";
-  //  SESUDAH (FIX): pakai AppConfig.imageServerUrl di build()
 
   @override
   void initState() {
@@ -159,7 +154,6 @@ class _ProductEditPageState extends State<ProductEditPage> {
                         child: _newImageFile != null
                             ? Image.network(_newImageFile!.path, fit: BoxFit.cover)
                             : Image.network(
-                                // ✅ FIX: Gunakan AppConfig.imageServerUrl bukan IP hardcoded
                                 "${AppConfig.imageServerUrl}${widget.product.imagePath}",
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
@@ -379,7 +373,7 @@ class _ProductEditPageState extends State<ProductEditPage> {
           isExpanded: true,
           style: const TextStyle(color: _textDark, fontSize: 14),
           dropdownColor: _backgroundWhite,
-          // ✅ FIX: Urutan dropdown diselaraskan dengan ID database (1=Obat, 2=Pupuk, 3=Benih, 4=Alat)
+          // Urutan dropdown selaras dengan ID database (1=Obat, 2=Pupuk, 3=Benih, 4=Alat)
           items: <String>['Obat', 'Pupuk', 'Benih', 'Alat'].map((String value) {
             return DropdownMenuItem<String>(value: value, child: Text(value));
           }).toList(),
