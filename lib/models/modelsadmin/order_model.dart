@@ -64,7 +64,7 @@ class OrderModel {
       idUser: int.tryParse(json['id_user']?.toString() ?? '0') ?? 0,
       customerName: namaCustomer,
       totalPrice: hargaStr,
-      status: json['status']?.toString() ?? 'Tertunda',
+      status: json['status']?.toString() ?? 'Pesanan Diterima',
       dateOrdered: tanggal,
       metodePembayaran:
           json['metode_pembayaran']?.toString() ?? 'Bayar Di Toko',

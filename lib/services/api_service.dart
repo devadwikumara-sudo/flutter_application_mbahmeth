@@ -422,11 +422,14 @@ class ApiService {
   }
 
   // 23.Ambil Statistik Dashboard Admin 
-  Future<Map<String, dynamic>> getDashboardStats() async {
+  Future<Map<String, dynamic>> getDashboardStats({int? month, int? year}) async {
     try {
       // Tambahkan timestamp sebagai cache-buster agar selalu dapat data terbaru
       final ts = DateTime.now().millisecondsSinceEpoch;
-      final url = Uri.parse("$adminUrl/dashboard_stats.php?_t=$ts");
+      String urlStr = "$adminUrl/dashboard_stats.php?_t=$ts";
+      if (month != null) urlStr += "&month=$month";
+      if (year != null) urlStr += "&year=$year";
+      final url = Uri.parse(urlStr);
       debugPrint("getDashboardStats → GET $url");
 
       final response = await http
@@ -462,6 +465,9 @@ class ApiService {
           'total_products': data['total_products'] ?? 0,
           'total_orders': data['total_orders'] ?? 0,
           'total_revenue': data['total_revenue'] ?? 0,
+          'total_qty_sold': data['total_qty_sold'] ?? 0,
+          'month': data['month'],
+          'year': data['year'],
         };
       }
 
@@ -499,5 +505,51 @@ class ApiService {
       debugPrint("Error getCompletedOrders: $e");
       return {'success': false, 'message': e.toString()};
     }
+  }
+
+  // 25. Selesaikan Pesanan (Customer)
+  Future<Map<String, dynamic>> completeOrder({
+    required int idOrder,
+    required int idUser,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$customerUrl/complete_order.php"),
+        body: {
+          'id_order': idOrder.toString(),
+          'id_user': idUser.toString(),
+        },
+      );
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      }
+      return {'status': 'error', 'message': 'Server error: ${response.statusCode}'};
+    } catch (e) {
+      debugPrint("Error completeOrder: $e");
+      return {'status': 'error', 'message': e.toString()};
+    }
+  }
+
+  // 26. Ambil Produk Terlaris Bulan Ini (Customer)
+  Future<List<dynamic>> getTopSellingProducts() async {
+    try {
+      final response = await http.get(
+        Uri.parse("$customerUrl/get_top_selling_products.php"),
+      );
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is List) return decoded;
+        return [];
+      }
+      return [];
+    } catch (e) {
+      debugPrint("Error getTopSellingProducts: $e");
+      return [];
+    }
+  }
+
+  // 27. Dapatkan URL Laporan Bulanan (Admin)
+  String getMonthlyReportUrl(int month, int year) {
+    return "$adminUrl/download_monthly_report.php?month=$month&year=$year";
   }
 }

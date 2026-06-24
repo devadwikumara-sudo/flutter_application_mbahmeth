@@ -92,13 +92,31 @@ class _DetailScreenState extends State<DetailScreen> {
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'Gagal masuk keranjang'),
-          backgroundColor: AppColors.primaryRed,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.error_outline_rounded, color: AppColors.primaryRed, size: 28),
+              SizedBox(width: 10),
+              Text('Gagal Menambahkan'),
+            ],
+          ),
+          content: Text(
+            result['message'] ?? 'Sistem gagal menambahkan produk ke keranjang. Silakan coba lagi.',
+            style: const TextStyle(height: 1.5),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Tutup', style: TextStyle(color: Colors.white)),
+            ),
+          ],
         ),
       );
     }
@@ -130,7 +148,7 @@ class _DetailScreenState extends State<DetailScreen> {
                   errorBuilder: (_, _, _) => Container(
                     color: AppColors.successLight,
                     child: const Center(
-                      child: Icon(Icons.eco_rounded,
+                      child: Icon(Icons.agriculture_rounded,
                           size: 80, color: AppColors.primaryGreen),
                     ),
                   ),

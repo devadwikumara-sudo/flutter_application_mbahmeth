@@ -27,6 +27,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   final GlobalKey<CartPageState> _cartKey = GlobalKey<CartPageState>();
   final ApiService _api = ApiService();
   Map<int, List<dynamic>> _categoryProducts = {};
+  List<dynamic> _topSellingProducts = [];
   bool _loadingProducts = true;
 
   // ── Search ──
@@ -74,12 +75,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     }
   }
 
-  // ── Ambil 2 produk per kategori ──────────────────────────────────────────
+  // ── Ambil 2 produk per kategori & terlaris ──────────────────────────────
   Future<void> _loadAllCategoryProducts() async {
     setState(() => _loadingProducts = true);
 
     final Map<int, List<dynamic>> result = {};
     final List<dynamic> allProducts = [];
+    List<dynamic> topSelling = [];
+
+    // Ambil top selling products
+    try {
+      topSelling = await _api.getTopSellingProducts();
+    } catch (e) {
+      debugPrint("Error loading top selling: $e");
+    }
 
     for (final cat in _categoryMeta) {
       try {
@@ -99,6 +108,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       setState(() {
         _categoryProducts = result;
         _allProducts = allProducts;
+        _topSellingProducts = topSelling;
         _loadingProducts = false;
       });
     }
@@ -113,13 +123,68 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         _searchResults = [];
       });
     } else {
+      // Pecah query berdasarkan spasi untuk mendeteksi pencarian multi-kata kunci
+      final queryWords = query.split(RegExp(r'\s+')).where((word) => word.isNotEmpty).toList();
+      
+      if (queryWords.isEmpty) {
+        setState(() {
+          _isSearching = false;
+          _searchResults = [];
+        });
+        return;
+      }
+
+      final List<Map<String, dynamic>> scoredResults = [];
+
+      for (var p in _allProducts) {
+        final nama = (p['nama_produk'] ?? '').toString().toLowerCase();
+        final desc = (p['deskripsi'] ?? '').toString().toLowerCase();
+        
+        int score = 0;
+        bool allWordsMatch = true;
+
+        for (var word in queryWords) {
+          bool wordMatchesNama = nama.contains(word);
+          bool wordMatchesDesc = desc.contains(word);
+
+          if (!wordMatchesNama && !wordMatchesDesc) {
+            allWordsMatch = false;
+            break;
+          }
+
+          // Tambah skor berdasarkan kecocokan
+          if (wordMatchesNama) {
+            score += 15; // Bobot tinggi untuk kecocokan di nama produk
+            if (nama.startsWith(word)) {
+              score += 10; // Bonus jika cocok di awal kata
+            }
+          }
+          if (wordMatchesDesc) {
+            score += 3; // Bobot rendah untuk deskripsi
+          }
+        }
+
+        // Bonus kecocokan frasa penuh
+        if (allWordsMatch) {
+          if (nama.contains(query)) {
+            score += 30;
+          }
+          if (desc.contains(query)) {
+            score += 10;
+          }
+          scoredResults.add({
+            'product': p,
+            'score': score,
+          });
+        }
+      }
+
+      // Urutkan berdasarkan skor tertinggi (paling relevan)
+      scoredResults.sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
+
       setState(() {
         _isSearching = true;
-        _searchResults = _allProducts.where((p) {
-          final nama = (p['nama_produk'] ?? '').toString().toLowerCase();
-          final desc = (p['deskripsi'] ?? '').toString().toLowerCase();
-          return nama.contains(query) || desc.contains(query);
-        }).toList();
+        _searchResults = scoredResults.map((item) => item['product']).toList();
       });
     }
   }
@@ -266,6 +331,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                               _buildSearchResults()
                             else ...[
                               _buildCategorySection(),
+                              _buildTopSellingSection(),
                               _buildAllCategoryProductSections(),
                               const SizedBox(height: 32),
                             ],
@@ -565,6 +631,168 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTopSellingSection() {
+    if (_topSellingProducts.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.local_fire_department_rounded,
+                    color: Colors.amber, size: 18),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Produk Terlaris Bulan Ini',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 220,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: _topSellingProducts.length,
+            itemBuilder: (context, index) {
+              final item = _topSellingProducts[index];
+              final imgUrl = '${ApiService.imageUrl}${item['gambar_produk'] ?? ''}';
+              
+              return GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DetailScreen(product: Map<String, dynamic>.from(item)),
+                  ),
+                ),
+                child: Container(
+                  width: 160,
+                  margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.cardBorder),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Gambar Produk + Badge Terlaris
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                              child: Image.network(
+                                imgUrl,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: AppColors.successLight,
+                                  child: const Center(
+                                    child: Icon(Icons.eco_rounded, color: AppColors.primaryGreen, size: 28),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 8,
+                              left: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Colors.amber, Colors.orange],
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.orange.withOpacity(0.4),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    )
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.star_rounded, color: Colors.white, size: 10),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      '#${index + 1} Terlaris',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Info Produk
+                      Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['nama_produk'] ?? '-',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Rp ${_formatHarga(item['harga'])}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.primaryGreen,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

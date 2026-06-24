@@ -120,45 +120,57 @@ class _NotificationScreenState extends State<NotificationScreen> {
   // PENTING: nilai DB tetap 'Pengolahan', label tampilan → 'Diproses'
   String _labelStatus(dynamic status) {
     switch (status?.toString().toLowerCase()) {
-      case 'tertunda':   return 'Tertunda';
-      case 'pengolahan': return 'Diproses';   // ← label tampilan diubah
+      case 'pesanan diterima': return 'Pesanan Diterima';
+      case 'tertunda':        return 'Pesanan Diterima';
+      case 'diproses':        return 'Diproses';
+      case 'pengolahan':      return 'Diproses';
+      case 'bisa diambil':    return 'Bisa Diambil';
       case 'selesai':
-      case 'checkout':   return 'Selesai';
-      case 'dibatalkan': return 'Dibatalkan';
-      default:           return status?.toString() ?? '-';
+      case 'checkout':        return 'Selesai';
+      case 'dibatalkan':      return 'Dibatalkan';
+      default:                return status?.toString() ?? '-';
     }
   }
 
   Color _colorStatus(dynamic status) {
     switch (status?.toString().toLowerCase()) {
-      case 'tertunda':   return const Color(0xFFF59E0B);
-      case 'pengolahan': return const Color(0xFF3B82F6);
+      case 'pesanan diterima':
+      case 'tertunda':        return const Color(0xFFF59E0B);
+      case 'diproses':
+      case 'pengolahan':      return const Color(0xFF3B82F6);
+      case 'bisa diambil':    return const Color(0xFF8B5CF6);
       case 'selesai':
-      case 'checkout':   return AppColors.primaryGreen;
-      case 'dibatalkan': return const Color(0xFFEF4444);
-      default:           return Colors.grey;
+      case 'checkout':        return AppColors.primaryGreen;
+      case 'dibatalkan':      return const Color(0xFFEF4444);
+      default:                return Colors.grey;
     }
   }
 
   Color _bgStatus(dynamic status) {
     switch (status?.toString().toLowerCase()) {
-      case 'tertunda':   return const Color(0xFFFEF3C7);
-      case 'pengolahan': return const Color(0xFFDBEAFE);
+      case 'pesanan diterima':
+      case 'tertunda':        return const Color(0xFFFEF3C7);
+      case 'diproses':
+      case 'pengolahan':      return const Color(0xFFDBEAFE);
+      case 'bisa diambil':    return const Color(0xFFEDE9FE);
       case 'selesai':
-      case 'checkout':   return AppColors.successLight;
-      case 'dibatalkan': return const Color(0xFFFEE2E2);
-      default:           return Colors.grey.shade100;
+      case 'checkout':        return AppColors.successLight;
+      case 'dibatalkan':      return const Color(0xFFFEE2E2);
+      default:                return Colors.grey.shade100;
     }
   }
 
   IconData _iconStatus(dynamic status) {
     switch (status?.toString().toLowerCase()) {
-      case 'tertunda':   return Icons.hourglass_top_rounded;
-      case 'pengolahan': return Icons.timelapse_rounded;
+      case 'pesanan diterima':
+      case 'tertunda':        return Icons.hourglass_top_rounded;
+      case 'diproses':
+      case 'pengolahan':      return Icons.timelapse_rounded;
+      case 'bisa diambil':    return Icons.store_rounded;
       case 'selesai':
-      case 'checkout':   return Icons.check_circle_rounded;
-      case 'dibatalkan': return Icons.cancel_rounded;
-      default:           return Icons.info_outline_rounded;
+      case 'checkout':        return Icons.check_circle_rounded;
+      case 'dibatalkan':      return Icons.cancel_rounded;
+      default:                return Icons.info_outline_rounded;
     }
   }
 
@@ -244,6 +256,66 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
+  Future<void> _completeOrderAndDownloadReceipt(BuildContext context, Map<String, dynamic> order) async {
+    final idOrder = int.tryParse(order['id_order']?.toString() ?? '0') ?? 0;
+    if (idOrder <= 0 || _currentUserId <= 0) return;
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Row(children: [
+          SizedBox(width: 18, height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+          SizedBox(width: 12),
+          Text('Menyelesaikan pesanan...'),
+        ]),
+        backgroundColor: AppColors.primaryGreen,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+    }
+
+    final res = await _api.completeOrder(idOrder: idOrder, idUser: _currentUserId);
+
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    if (res['status'] == 'success') {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Row(children: [
+          Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+          SizedBox(width: 10),
+          Text('Pesanan selesai! Mengunduh struk...'),
+        ]),
+        backgroundColor: AppColors.primaryGreen,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+
+      // Refresh data
+      await _loadAll();
+
+      // Trigger simpan struk
+      final updatedOrder = Map<String, dynamic>.from(order);
+      updatedOrder['status'] = 'Selesai';
+      await _saveReceiptFromOrder(context, updatedOrder);
+    } else {
+      final msg = res['message'] ?? 'Gagal menyelesaikan pesanan';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Row(children: [
+          const Icon(Icons.error_outline, color: Colors.white, size: 18),
+          const SizedBox(width: 10),
+          Expanded(child: Text(msg)),
+        ]),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+    }
+  }
+
   void _showDetailPesanan(BuildContext context, Map<String, dynamic> order) {
     showModalBottomSheet(
       context: context,
@@ -260,6 +332,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
         isReceiptTaken: _isReceiptTaken,
         baseUrl: AppConfig.imageServerUrl,
         onSaveReceipt: () => _saveReceiptFromOrder(context, order),
+        onCompleteOrder: () => _completeOrderAndDownloadReceipt(context, order),
       ),
     );
   }
@@ -648,6 +721,33 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ],
             ),
 
+            // ── Tombol Selesaikan Pesanan — HANYA jika status adalah Bisa Diambil ──
+            if (status.toLowerCase() == 'bisa diambil') ...[
+              Divider(height: 1, color: Colors.grey.shade100),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _completeOrderAndDownloadReceipt(
+                        context, Map<String, dynamic>.from(order)),
+                    icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
+                    label: const Text('Selesaikan Pesanan & Ambil Struk',
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w700)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryGreen,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
             // ── Tombol Ambil Struk — HANYA jika Selesai & belum diambil ──
             if (selesai && !receiptTaken) ...[
               Divider(height: 1, color: Colors.grey.shade100),
@@ -784,6 +884,7 @@ class _DetailNotifSheet extends StatelessWidget {
   final bool Function(int) isReceiptTaken;
   final String baseUrl;
   final VoidCallback onSaveReceipt;
+  final VoidCallback onCompleteOrder;
 
   const _DetailNotifSheet({
     required this.order,
@@ -796,6 +897,7 @@ class _DetailNotifSheet extends StatelessWidget {
     required this.isReceiptTaken,
     required this.baseUrl,
     required this.onSaveReceipt,
+    required this.onCompleteOrder,
   });
 
   @override
@@ -807,6 +909,7 @@ class _DetailNotifSheet extends StatelessWidget {
     final statusBg = bgStatus(status);
     final selesai = isSelesai(status);
     final dibatalkan = status?.toString().toLowerCase() == 'dibatalkan';
+    final isBisaDiambil = status?.toString().toLowerCase() == 'bisa diambil';
     final idOrder = int.tryParse(order['id_order']?.toString() ?? '0') ?? 0;
     final receiptTaken = isReceiptTaken(idOrder);
 
@@ -866,12 +969,16 @@ class _DetailNotifSheet extends StatelessWidget {
                       ? Icons.check_rounded
                       : dibatalkan
                           ? Icons.close_rounded
-                          : Icons.timelapse_rounded,
+                          : isBisaDiambil
+                              ? Icons.store_rounded
+                              : Icons.timelapse_rounded,
                   title: selesai
                       ? 'Pesanan Selesai!'
                       : dibatalkan
                           ? 'Pesanan Dibatalkan'
-                          : 'Sedang Diproses',
+                          : isBisaDiambil
+                              ? 'Siap Diambil!'
+                              : 'Sedang Diproses',
                   subtitle: 'Pesanan #${order['id_order']} $statusLabel',
                 ),
 
@@ -969,6 +1076,76 @@ class _DetailNotifSheet extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 20),
+
+                // ── Bagian Selesaikan Pesanan (HANYA jika Bisa Diambil) ────
+                if (isBisaDiambil) ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEDE9FE),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                          color: const Color(0xFFDDD6FE)),
+                    ),
+                    child: Row(children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF8B5CF6),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.store_rounded,
+                            color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Pesanan Siap Diambil!',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  color: AppColors.textDark),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Silakan selesaikan pesanan terlebih dahulu untuk mengambil struk belanja.',
+                              style: TextStyle(
+                                  fontSize: 11, color: AppColors.textMedium),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onCompleteOrder();
+                      },
+                      icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                      label: const Text(
+                        'Selesaikan Pesanan & Ambil Struk',
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w700),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
                 // ── Bagian struk (HANYA jika Selesai) ─────────────────────
                 if (selesai) ...[

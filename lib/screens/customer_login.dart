@@ -13,6 +13,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_application_mbahmeth/core/config/app_config.dart';
 import 'package:flutter_application_mbahmeth/screens/welcome_screen.dart'; 
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_application_mbahmeth/screens/otp_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -26,17 +28,29 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  String? _emailError;
+  String? _passwordError;
 
   void _handleLogin() async {
+    setState(() {
+      _emailError = null;
+      _passwordError = null;
+    });
+
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email/Username dan Password harus diisi')),
-      );
-      return;
+    bool hasError = false;
+    if (email.isEmpty) {
+      setState(() => _emailError = 'Email/Username tidak boleh kosong');
+      hasError = true;
     }
+    if (password.isEmpty) {
+      setState(() => _passwordError = 'Kata sandi tidak boleh kosong');
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     setState(() => _isLoading = true);
     await loginUser(email, password);
@@ -61,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('nama', user['nama'] ?? '');
         await prefs.setString('email', user['email'] ?? '');
         await prefs.setString('role', user['role'] ?? '');
+        await prefs.setString('foto_profil', user['foto_profil'] ?? '');
 
         if (!mounted) return;
         Navigator.push(
@@ -77,6 +92,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 );
               },
             ),
+          ),
+        );
+      } else if (data['status'] == 'unverified') {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OtpScreen(email: data['email']),
           ),
         );
       } else {
@@ -97,6 +120,56 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text('Gagal terhubung: ${e.toString()}'), backgroundColor: Colors.red),
       );
     }
+  }
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isLoading = true);
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        setState(() => _isLoading = false);
+        return; // User canceled
+      }
+
+      final response = await http.post(
+        Uri.parse("${AppConfig.customerUrl}/google_login.php"),
+        body: {
+          "google_id": googleUser.id,
+          "email": googleUser.email,
+          "nama_lengkap": googleUser.displayName ?? '',
+          "foto_profil": googleUser.photoUrl ?? ''
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      final data = json.decode(response.body);
+      if (data['status'] == "success") {
+        final user = data['user'];
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('id_user', (user['id_user'] as num).toInt());
+        await prefs.setString('nama', user['nama'] ?? '');
+        await prefs.setString('email', user['email'] ?? '');
+        await prefs.setString('role', user['role'] ?? '');
+        await prefs.setString('foto_profil', user['foto_profil'] ?? '');
+
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const CustomerHomeScreen()),
+          (Route<dynamic> route) => false,
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Login Google Gagal'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal terhubung: ${e.toString()}'), backgroundColor: Colors.red),
+      );
+    }
+    setState(() => _isLoading = false);
   }
 
   @override
@@ -284,28 +357,44 @@ class _LoginScreenState extends State<LoginScreen> {
                             
                             const SizedBox(height: 30),
                             
-                            const Text('Email / Nama Lengkap', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                            const SizedBox(height: 8),
-                            CustomTextField(
-                              controller: _emailController,
-                              hintText: 'Masukkan kredensial Anda',
-                              prefixIcon: Icons.alternate_email_rounded,
-                            ),
+                            AutofillGroup(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  const Text('Email / Nama Lengkap', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                                  const SizedBox(height: 8),
+                                  CustomTextField(
+                                    controller: _emailController,
+                                    hintText: 'Masukkan kredensial Anda',
+                                    prefixIcon: Icons.alternate_email_rounded,
+                                    errorText: _emailError,
+                                    enabled: !_isLoading,
+                                    autofillHints: const [AutofillHints.email, AutofillHints.username],
+                                    textInputAction: TextInputAction.next,
+                                  ),
 
-                            const SizedBox(height: 20),
-                            const Text('Kata Sandi', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                            const SizedBox(height: 8),
-                            CustomTextField(
-                              controller: _passwordController,
-                              obscureText: _obscurePassword,
-                              hintText: 'Masukkan Kata Sandi',
-                              prefixIcon: Icons.lock_outline_rounded,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                  color: Colors.grey,
-                                ),
-                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                  const SizedBox(height: 20),
+                                  const Text('Kata Sandi', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                                  const SizedBox(height: 8),
+                                  CustomTextField(
+                                    controller: _passwordController,
+                                    obscureText: _obscurePassword,
+                                    hintText: 'Masukkan Kata Sandi',
+                                    prefixIcon: Icons.lock_outline_rounded,
+                                    errorText: _passwordError,
+                                    enabled: !_isLoading,
+                                    autofillHints: const [AutofillHints.password],
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: (_) => _handleLogin(),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                        color: Colors.grey,
+                                      ),
+                                      onPressed: _isLoading ? null : () => setState(() => _obscurePassword = !_obscurePassword),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
 
@@ -325,6 +414,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                 : PrimaryButton(
                                     text: 'Masuk Sekarang',
                                     onPressed: _handleLogin,
+                                  ),
+                            const SizedBox(height: 15),
+                            _isLoading
+                                ? const SizedBox.shrink()
+                                : OutlinedButton.icon(
+                                    icon: Image.asset('assets/images/google_logo.png', height: 24, errorBuilder: (c, e, s) => const Icon(Icons.g_mobiledata, size: 30, color: Colors.red)),
+                                    label: const Text('Lanjutkan dengan Google', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                    onPressed: _handleGoogleLogin,
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    ),
                                   ),
                           ],
                         ),

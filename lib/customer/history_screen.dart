@@ -22,8 +22,9 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   final List<_TabData> _tabs = [
     _TabData(label: 'Semua',      icon: Icons.list_rounded),
-    _TabData(label: 'Tertunda',   icon: Icons.hourglass_top_rounded),
-    _TabData(label: 'Diproses', icon: Icons.timelapse_rounded),
+    _TabData(label: 'Diterima',   icon: Icons.hourglass_top_rounded),
+    _TabData(label: 'Diproses',   icon: Icons.timelapse_rounded),
+    _TabData(label: 'Bisa Diambil', icon: Icons.store_rounded),
     _TabData(label: 'Selesai',    icon: Icons.check_circle_rounded),
     _TabData(label: 'Dibatalkan', icon: Icons.cancel_rounded),
   ];
@@ -85,8 +86,9 @@ class _HistoryScreenState extends State<HistoryScreen>
     return _allOrders.where((o) {
       final s = (o['status']?.toString() ?? '').toLowerCase();
       switch (tab) {
-        case 'Tertunda':   return s == 'tertunda';
-        case 'Diproses':   return s == 'pengolahan'; // DB value tetap 'Pengolahan'
+        case 'Diterima':   return s == 'pesanan diterima' || s == 'tertunda';
+        case 'Diproses':   return s == 'diproses' || s == 'pengolahan';
+        case 'Bisa Diambil': return s == 'bisa diambil';
         case 'Selesai':    return s == 'selesai' || s == 'checkout';
         case 'Dibatalkan': return s == 'dibatalkan';
         default:           return s == tab.toLowerCase();
@@ -132,35 +134,44 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   String _labelStatus(dynamic status) {
     switch (status?.toString().toLowerCase()) {
-      case 'tertunda':   return 'Tertunda';
-      case 'pengolahan': return 'Diproses';
-      case 'selesai':    return 'Selesai';
-      case 'dibatalkan': return 'Dibatalkan';
-      case 'checkout':   return 'Selesai';
-      case 'keranjang':  return 'Keranjang';
-      default:           return status?.toString() ?? '-';
+      case 'pesanan diterima': return 'Pesanan Diterima';
+      case 'tertunda':        return 'Pesanan Diterima';
+      case 'diproses':        return 'Diproses';
+      case 'pengolahan':      return 'Diproses';
+      case 'bisa diambil':    return 'Bisa Diambil';
+      case 'selesai':         return 'Selesai';
+      case 'dibatalkan':      return 'Dibatalkan';
+      case 'checkout':        return 'Selesai';
+      case 'keranjang':       return 'Keranjang';
+      default:                return status?.toString() ?? '-';
     }
   }
 
   Color _warnaStatus(dynamic status) {
     switch (status?.toString().toLowerCase()) {
-      case 'tertunda':   return const Color(0xFFF59E0B);
-      case 'pengolahan': return const Color(0xFF3B82F6);
+      case 'pesanan diterima':
+      case 'tertunda':        return const Color(0xFFF59E0B);
+      case 'diproses':
+      case 'pengolahan':      return const Color(0xFF3B82F6);
+      case 'bisa diambil':    return const Color(0xFF8B5CF6);
       case 'selesai':
-      case 'checkout':   return AppColors.primaryGreen;
-      case 'dibatalkan': return const Color(0xFFEF4444);
-      default:           return Colors.grey;
+      case 'checkout':        return AppColors.primaryGreen;
+      case 'dibatalkan':      return const Color(0xFFEF4444);
+      default:                return Colors.grey;
     }
   }
 
   Color _bgStatus(dynamic status) {
     switch (status?.toString().toLowerCase()) {
-      case 'tertunda':   return const Color(0xFFFEF3C7);
-      case 'pengolahan': return const Color(0xFFDBEAFE);
+      case 'pesanan diterima':
+      case 'tertunda':        return const Color(0xFFFEF3C7);
+      case 'diproses':
+      case 'pengolahan':      return const Color(0xFFDBEAFE);
+      case 'bisa diambil':    return const Color(0xFFEDE9FE);
       case 'selesai':
-      case 'checkout':   return AppColors.successLight;
-      case 'dibatalkan': return const Color(0xFFFEE2E2);
-      default:           return Colors.grey.shade100;
+      case 'checkout':        return AppColors.successLight;
+      case 'dibatalkan':      return const Color(0xFFFEE2E2);
+      default:                return Colors.grey.shade100;
     }
   }
 

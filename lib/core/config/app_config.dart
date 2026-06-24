@@ -1,5 +1,8 @@
+import 'package:flutter/foundation.dart'; // Import kIsWeb untuk deteksi platform
+
 class AppConfig {
-  static const String ipAddress = "192.168.1.30";
+  // Jika berjalan di Web (Chrome), gunakan "localhost". Jika di HP, gunakan IP lokal "192.168.1.15"
+  static const String ipAddress = kIsWeb ? "localhost" : "192.168.1.15";
 
   // Base URL utama menuju folder 'api'
   static const String baseUrl = "http://$ipAddress/toko_mbahmeth/api";

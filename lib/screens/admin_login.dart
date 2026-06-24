@@ -21,15 +21,29 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final TextEditingController _identifierController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final ApiService _apiService = ApiService();
+  String? _identifierError;
+  String? _passwordError;
 
   void _handleAdminLogin() async {
+    setState(() {
+      _identifierError = null;
+      _passwordError = null;
+    });
+
     String identifier = _identifierController.text.trim();
     String password = _passwordController.text.trim();
 
-    if (identifier.isEmpty || password.isEmpty) {
-      _showSnackBar("Email/Username dan Password tidak boleh kosong");
-      return;
+    bool hasError = false;
+    if (identifier.isEmpty) {
+      setState(() => _identifierError = "Email/Username tidak boleh kosong");
+      hasError = true;
     }
+    if (password.isEmpty) {
+      setState(() => _passwordError = "Kata sandi tidak boleh kosong");
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     setState(() => _isLoading = true);
 
@@ -250,31 +264,47 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
                           const SizedBox(height: 30),
 
-                          const Text('Email / Username', 
-                              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                          const SizedBox(height: 8),
-                          CustomTextField(
-                            controller: _identifierController,
-                            hintText: 'Masukkan kredensial',
-                            prefixIcon: Icons.admin_panel_settings_outlined,
-                          ),
+                          AutofillGroup(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const Text('Email / Username', 
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                                const SizedBox(height: 8),
+                                CustomTextField(
+                                  controller: _identifierController,
+                                  hintText: 'Masukkan kredensial',
+                                  prefixIcon: Icons.admin_panel_settings_outlined,
+                                  errorText: _identifierError,
+                                  enabled: !_isLoading,
+                                  autofillHints: const [AutofillHints.email, AutofillHints.username],
+                                  textInputAction: TextInputAction.next,
+                                ),
 
-                          const SizedBox(height: 20),
+                                const SizedBox(height: 20),
 
-                          const Text('Kata Sandi', 
-                              style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                          const SizedBox(height: 8),
-                          CustomTextField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            hintText: 'Masukkan Kata Sandi',
-                            prefixIcon: Icons.lock_outline_rounded,
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                const Text('Kata Sandi', 
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textDark)),
+                                const SizedBox(height: 8),
+                                CustomTextField(
+                                  controller: _passwordController,
+                                  obscureText: _obscurePassword,
+                                  hintText: 'Masukkan Kata Sandi',
+                                  prefixIcon: Icons.lock_outline_rounded,
+                                  errorText: _passwordError,
+                                  enabled: !_isLoading,
+                                  autofillHints: const [AutofillHints.password],
+                                  textInputAction: TextInputAction.done,
+                                  onSubmitted: (_) => _handleAdminLogin(),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                      color: Colors.grey,
+                                    ),
+                                    onPressed: _isLoading ? null : () => setState(() => _obscurePassword = !_obscurePassword),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
 

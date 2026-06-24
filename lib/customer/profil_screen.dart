@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter_application_mbahmeth/screens/customer_login.dart';
 import 'package:flutter_application_mbahmeth/services/api_service.dart';
+import 'package:flutter_application_mbahmeth/core/config/app_config.dart';
 import 'history_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -24,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   String _nama = 'Pengguna';
   String _email = '-';
   String? _fotoPath;
+  String? _fotoUrl;
 
   // ── FIX Bug 2: Ganti nilai hard-coded dengan variabel dinamis ──
   int _totalPesanan = 0;
@@ -71,6 +75,17 @@ class _ProfileScreenState extends State<ProfileScreen>
           'Pengguna';
       _email = prefs.getString('email') ?? '-';
       _fotoPath = prefs.getString('foto_profil_path');
+      
+      final dbFoto = prefs.getString('foto_profil');
+      if (dbFoto != null && dbFoto.isNotEmpty) {
+        if (dbFoto.startsWith('http://') || dbFoto.startsWith('https://')) {
+          _fotoUrl = dbFoto;
+        } else {
+          _fotoUrl = "http://${AppConfig.ipAddress}/toko_mbahmeth/public/assets/foto_profil/$dbFoto";
+        }
+      } else {
+        _fotoUrl = null;
+      }
     });
 
     // ── FIX Bug 2: Ambil statistik dari API, bukan hard-code ──
@@ -133,8 +148,32 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
     if (picked != null) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('foto_profil_path', picked.path);
-      if (mounted) setState(() => _fotoPath = picked.path);
+      final idUser = prefs.getInt('id_user') ?? 0;
+      
+      if (idUser == 0) return;
+
+      var request = http.MultipartRequest('POST', Uri.parse('${AppConfig.customerUrl}/upload_foto_profil.php'));
+      request.fields['id_user'] = idUser.toString();
+      request.files.add(await http.MultipartFile.fromPath('foto', picked.path));
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        var respStr = await response.stream.bytesToString();
+        var data = json.decode(respStr);
+        if (data['success']) {
+          await prefs.setString('foto_profil_path', picked.path); // local cache
+          await prefs.setString('foto_profil', data['filename'] ?? '');
+          if (mounted) {
+            setState(() {
+              _fotoPath = picked.path;
+              _fotoUrl = data['foto_url'];
+            });
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Foto profil berhasil diubah'), backgroundColor: _green));
+          }
+        } else {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message'] ?? 'Gagal upload foto'), backgroundColor: Colors.red));
+        }
+      }
     }
   }
 
@@ -175,6 +214,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     await prefs.remove('nama');
     await prefs.remove('email');
     await prefs.remove('nama_lengkap');
+    await prefs.remove('foto_profil');
+    await prefs.remove('foto_profil_path');
     // ── FIX: Reset statistik saat logout ──
     if (mounted) {
       setState(() {
@@ -184,6 +225,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         _nama = 'Pengguna';
         _email = '-';
         _fotoPath = null;
+        _fotoUrl = null;
       });
     }
 
@@ -244,11 +286,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 radius: 52,
                                 backgroundColor:
                                     Colors.white.withOpacity(0.2),
-                                backgroundImage: _fotoPath != null
+                                backgroundImage: _fotoPath != null && File(_fotoPath!).existsSync()
                                     ? FileImage(File(_fotoPath!))
-                                    : null,
-                                child: _fotoPath == null
-                                    ? Text(
+                                    : (_fotoUrl != null
+                                        ? NetworkImage(_fotoUrl!)
+                                        : null) as ImageProvider<Object>?,
+                                child: (_fotoPath != null && File(_fotoPath!).existsSync()) || _fotoUrl != null
+                                    ? null
+                                    : Text(
                                         _nama.isNotEmpty
                                             ? _nama[0].toUpperCase()
                                             : 'U',
@@ -257,8 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
                                         ),
-                                      )
-                                    : null,
+                                      ),
                               ),
                             ),
                             Positioned(
@@ -590,10 +634,35 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           ElevatedButton(
             onPressed: () async {
+              final newName = ctrl.text.trim();
+              if (newName.isEmpty) return;
+              
               final prefs = await SharedPreferences.getInstance();
-              await prefs.setString('nama', ctrl.text);
-              setState(() => _nama = ctrl.text);
-              if (mounted) Navigator.pop(ctx);
+              final idUser = prefs.getInt('id_user') ?? 0;
+
+              if (idUser > 0) {
+                final response = await http.post(
+                  Uri.parse("${AppConfig.customerUrl}/update_profile.php"),
+                  body: {
+                    "id_user": idUser.toString(),
+                    "nama_lengkap": newName,
+                  },
+                );
+                
+                final data = json.decode(response.body);
+                if (data['status'] == 'success') {
+                  await prefs.setString('nama', newName);
+                  if (mounted) {
+                    setState(() => _nama = newName);
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nama berhasil diperbarui'), backgroundColor: _green));
+                  }
+                } else {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['message']), backgroundColor: Colors.red));
+                }
+              } else {
+                if (mounted) Navigator.pop(ctx);
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: _green,

@@ -107,13 +107,32 @@ class _CheckoutPageState extends State<CheckoutPage> {
     if (!success) {
       setState(() => _isProcessing = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Gagal melakukan checkout. Coba lagi.'),
-          backgroundColor: AppColors.primaryRed,
-          behavior: SnackBarBehavior.floating,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.error_outline_rounded, color: AppColors.primaryRed, size: 28),
+              SizedBox(width: 10),
+              Text('Checkout Gagal'),
+            ],
+          ),
+          content: const Text(
+            'Mohon maaf, sistem gagal memproses pesanan Anda. Silakan periksa kembali stok atau koneksi internet Anda.',
+            style: TextStyle(height: 1.5),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryGreen,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Tutup', style: TextStyle(color: Colors.white)),
+            ),
+          ],
         ),
       );
       return;
@@ -680,7 +699,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               width: 58,
               height: 58,
               color: AppColors.successLight,
-              child: const Icon(Icons.eco_rounded,
+              child: const Icon(Icons.agriculture_rounded,
                   color: AppColors.primaryGreen, size: 24),
             ),
           ),

@@ -17,6 +17,8 @@ class CustomTextField extends StatefulWidget {
   final int maxLines;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
+  final Iterable<String>? autofillHints;
+  final bool enabled;
 
   const CustomTextField({
     super.key,
@@ -35,6 +37,8 @@ class CustomTextField extends StatefulWidget {
     this.maxLines = 1,
     this.textInputAction,
     this.onSubmitted,
+    this.autofillHints,
+    this.enabled = true,
   });
 
   @override
@@ -142,6 +146,8 @@ class _CustomTextFieldState extends State<CustomTextField>
             keyboardType: widget.keyboardType,
             onChanged: widget.onChanged,
             readOnly: widget.readOnly,
+            enabled: widget.enabled,
+            autofillHints: widget.autofillHints,
             onTap: widget.onTap,
             maxLines: widget.maxLines,
             textInputAction: widget.textInputAction,

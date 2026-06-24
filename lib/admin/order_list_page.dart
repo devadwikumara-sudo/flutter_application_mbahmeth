@@ -14,7 +14,7 @@ class OrderListPage extends StatefulWidget {
 }
 
 class _OrderListPageState extends State<OrderListPage> {
-  String _activeTab = "Tertunda";
+  String _activeTab = "Pesanan Diterima";
   List<OrderModel> _allOrders = [];
   bool _isLoading = true;
 
@@ -30,10 +30,11 @@ class _OrderListPageState extends State<OrderListPage> {
   static const _successLight     = Color(0xFFE8F5E2);
 
   static const _tabs = [
-    _TabConfig("Tertunda",   Color(0xFFD32F2F), Color(0xFFFFEBEB)),
-    _TabConfig("Diproses",   Color(0xFFF59E0B), Color(0xFFFEF3C7)),
-    _TabConfig("Selesai",    Color(0xFF2E9900), Color(0xFFE8F5E2)),
-    _TabConfig("Dibatalkan", Color(0xFF8A9E8A), Color(0xFFF4FAF2)),
+    _TabConfig("Pesanan Diterima", Color(0xFFD32F2F), Color(0xFFFFEBEB)),
+    _TabConfig("Diproses",        Color(0xFFF59E0B), Color(0xFFFEF3C7)),
+    _TabConfig("Bisa Diambil",    Color(0xFF1565C0), Color(0xFFE3F2FD)),
+    _TabConfig("Selesai",         Color(0xFF2E9900), Color(0xFFE8F5E2)),
+    _TabConfig("Dibatalkan",      Color(0xFF8A9E8A), Color(0xFFF4FAF2)),
   ];
 
   @override
@@ -315,16 +316,17 @@ class _OrderListPageState extends State<OrderListPage> {
     );
 
     Widget? actionButtons;
-    if (_activeTab == 'Tertunda') {
+    if (_activeTab == 'Pesanan Diterima') {
+      // Admin: Terima pesanan → Diproses, atau Batalkan
       actionButtons = Row(
         children: [
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () => _updateStatus(order, 'Pengolahan'),
-              icon: const Icon(Icons.check_rounded, size: 16),
-              label: const Text('Terima'),
+              onPressed: () => _updateStatus(order, 'Diproses'),
+              icon: const Icon(Icons.play_circle_outline_rounded, size: 16),
+              label: const Text('Proses'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryGreen,
+                backgroundColor: const Color(0xFFF59E0B),
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -352,15 +354,16 @@ class _OrderListPageState extends State<OrderListPage> {
         ],
       );
     } else if (_activeTab == 'Diproses') {
+      // Admin: Siap diambil → Bisa Diambil, atau Batalkan
       actionButtons = Row(
         children: [
           Expanded(
             child: ElevatedButton.icon(
-              onPressed: () => _updateStatus(order, 'Selesai'),
-              icon: const Icon(Icons.done_all_rounded, size: 16),
-              label: const Text('Selesai'),
+              onPressed: () => _updateStatus(order, 'Bisa Diambil'),
+              icon: const Icon(Icons.store_rounded, size: 16),
+              label: const Text('Siap Ambil'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryGreen,
+                backgroundColor: const Color(0xFF1565C0),
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -386,6 +389,30 @@ class _OrderListPageState extends State<OrderListPage> {
             ),
           ),
         ],
+      );
+    } else if (_activeTab == 'Bisa Diambil') {
+      // Menunggu customer konfirmasi selesai — hanya info
+      actionButtons = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE3F2FD),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.hourglass_top_rounded,
+                size: 14, color: Color(0xFF1565C0)),
+            SizedBox(width: 6),
+            Text(
+              'Menunggu konfirmasi pelanggan',
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF1565C0),
+                  fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
       );
     }
 
@@ -487,13 +514,14 @@ class _OrderListPageState extends State<OrderListPage> {
 }
 
 bool _matchStatus(String dbStatus, String tabLabel) {
-  final s = dbStatus.toLowerCase();
+  final s = dbStatus.toLowerCase().trim();
   switch (tabLabel) {
-    case 'Tertunda':   return s == 'tertunda';
-    case 'Diproses':   return s == 'pengolahan';
-    case 'Selesai':    return s == 'selesai';
-    case 'Dibatalkan': return s == 'dibatalkan';
-    default:           return s == tabLabel.toLowerCase();
+    case 'Pesanan Diterima': return s == 'pesanan diterima' || s == 'tertunda';
+    case 'Diproses':         return s == 'diproses' || s == 'pengolahan';
+    case 'Bisa Diambil':     return s == 'bisa diambil';
+    case 'Selesai':          return s == 'selesai';
+    case 'Dibatalkan':       return s == 'dibatalkan';
+    default:                 return s == tabLabel.toLowerCase();
   }
 }
 

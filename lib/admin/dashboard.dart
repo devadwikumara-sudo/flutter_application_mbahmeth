@@ -6,6 +6,7 @@ import 'package:flutter_application_mbahmeth/admin/profil_admin.dart';
 import 'package:flutter_application_mbahmeth/services/api_service.dart';
 import 'users_semua.dart';
 import 'completed_orders_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Model statistik dashboard
@@ -16,12 +17,18 @@ class DashboardStats {
   final int totalProducts;
   final int totalOrders;
   final double totalRevenue;
+  final int totalQtySold;
+  final int month;
+  final int year;
 
   const DashboardStats({
     required this.totalUsers,
     required this.totalProducts,
     required this.totalOrders,
     required this.totalRevenue,
+    required this.totalQtySold,
+    required this.month,
+    required this.year,
   });
 
   factory DashboardStats.fromJson(Map<String, dynamic> json) {
@@ -30,6 +37,9 @@ class DashboardStats {
       totalProducts: (json['total_products'] as num?)?.toInt() ?? 0,
       totalOrders: (json['total_orders'] as num?)?.toInt() ?? 0,
       totalRevenue: (json['total_revenue'] as num?)?.toDouble() ?? 0.0,
+      totalQtySold: (json['total_qty_sold'] as num?)?.toInt() ?? 0,
+      month: (json['month'] as num?)?.toInt() ?? DateTime.now().month,
+      year: (json['year'] as num?)?.toInt() ?? DateTime.now().year,
     );
   }
 
@@ -47,9 +57,9 @@ class DashboardStats {
   }
 }
 
-Future<DashboardStats> fetchDashboardStats() async {
+Future<DashboardStats> fetchDashboardStats({int? month, int? year}) async {
   // FIX: Gunakan ApiService yang sudah diperbaiki dengan cache-busting & error handling
-  final body = await ApiService().getDashboardStats();
+  final body = await ApiService().getDashboardStats(month: month, year: year);
   if (body['success'] != true) {
     // FIX: Tampilkan pesan error asli dari server, bukan pesan generik
     final msg = body['message'] as String? ?? 'Gagal mengambil statistik';
@@ -204,24 +214,49 @@ class _HomePage extends StatefulWidget {
 
 class _HomePageState extends State<_HomePage> {
   late Future<DashboardStats> _statsFuture;
+  int _selectedMonth = DateTime.now().month;
+  int _selectedYear = DateTime.now().year;
 
   @override
   void initState() {
     super.initState();
-    _statsFuture = fetchDashboardStats();
+    _statsFuture = fetchDashboardStats(month: _selectedMonth, year: _selectedYear);
   }
 
   void _retry() {
     setState(() {
-      _statsFuture = fetchDashboardStats();
+      _statsFuture = fetchDashboardStats(month: _selectedMonth, year: _selectedYear);
     });
   }
 
   // FIX: Method publik dipanggil dari _AdminDashboardState saat tab Home aktif
   void refreshStats() {
     setState(() {
-      _statsFuture = fetchDashboardStats();
+      _statsFuture = fetchDashboardStats(month: _selectedMonth, year: _selectedYear);
     });
+  }
+
+  Future<void> _downloadReport() async {
+    final urlString = ApiService().getMonthlyReportUrl(_selectedMonth, _selectedYear);
+    final uri = Uri.parse(urlString);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Tidak dapat membuka browser untuk mengunduh laporan';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Gagal mengunduh: $e"),
+            backgroundColor: const Color(0xFFD32F2F),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -231,7 +266,7 @@ class _HomePageState extends State<_HomePage> {
       body: RefreshIndicator(
         color: const Color(0xFF2E9900),
         onRefresh: () async {
-          setState(() => _statsFuture = fetchDashboardStats());
+          setState(() => _statsFuture = fetchDashboardStats(month: _selectedMonth, year: _selectedYear));
           await _statsFuture;
         },
         child: CustomScrollView(
@@ -307,6 +342,24 @@ class _HomePageState extends State<_HomePage> {
                 const SizedBox(height: 28),
                 const _SectionLabel(label: "Statistik Toko", icon: Icons.bar_chart_rounded),
                 const SizedBox(height: 14),
+                _FilterCard(
+                  selectedMonth: _selectedMonth,
+                  selectedYear: _selectedYear,
+                  onMonthChanged: (month) {
+                    setState(() {
+                      _selectedMonth = month;
+                      _statsFuture = fetchDashboardStats(month: _selectedMonth, year: _selectedYear);
+                    });
+                  },
+                  onYearChanged: (year) {
+                    setState(() {
+                      _selectedYear = year;
+                      _statsFuture = fetchDashboardStats(month: _selectedMonth, year: _selectedYear);
+                    });
+                  },
+                  onDownload: _downloadReport,
+                ),
+                const SizedBox(height: 18),
 
                 FutureBuilder<DashboardStats>(
                   future: _statsFuture,
@@ -479,9 +532,9 @@ class _StatsGrid extends StatelessWidget {
           child: Stack(
             children: [
               _StatCardWide(
-                label: "Total Pendapatan",
+                label: "Pendapatan Bulan Ini",
                 value: DashboardStats.formatRevenue(stats.totalRevenue),
-                subtitle: "Dari semua pesanan selesai  •  Tap untuk rincian",
+                subtitle: "Berdasarkan periode terpilih  •  Tap untuk rincian",
                 icon: Icons.account_balance_wallet_rounded,
                 accentColor: const Color(0xFF2E9900),
                 bgColor: const Color(0xFF1A2E1A),
@@ -515,7 +568,7 @@ class _StatsGrid extends StatelessWidget {
               child: _StatCardSquare(
                 label: "Pesanan",
                 value: DashboardStats.formatNumber(stats.totalOrders),
-                subtitle: "Pesanan selesai",
+                subtitle: "Pesanan selesai bulan ini",
                 icon: Icons.receipt_long_rounded,
                 accentColor: const Color(0xFF2E9900),
                 bgColor: Colors.white,
@@ -540,12 +593,12 @@ class _StatsGrid extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         _StatCardHorizontal(
-          label: "Total Produk",
-          value: DashboardStats.formatNumber(stats.totalProducts),
-          subtitle: "Item tersedia di semua kategori",
-          icon: Icons.inventory_2_rounded,
-          chipLabel: "4 Kategori",
-          chipIcon: Icons.category_rounded,
+          label: "Total Kuantitas Terjual",
+          value: DashboardStats.formatNumber(stats.totalQtySold),
+          subtitle: "Total unit produk terjual bulan ini",
+          icon: Icons.shopping_bag_rounded,
+          chipLabel: "Terjual",
+          chipIcon: Icons.trending_up_rounded,
           accentColor: const Color(0xFF1F6B00),
         ),
         // FIX: Tombol refresh produk agar admin bisa memperbarui data tanpa scroll ke atas
@@ -1254,6 +1307,166 @@ class _QuickMenuCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _FilterCard — Card Filter Periode & Tombol Download Excel/CSV
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FilterCard extends StatelessWidget {
+  final int selectedMonth;
+  final int selectedYear;
+  final ValueChanged<int> onMonthChanged;
+  final ValueChanged<int> onYearChanged;
+  final VoidCallback onDownload;
+
+  const _FilterCard({
+    required this.selectedMonth,
+    required this.selectedYear,
+    required this.onMonthChanged,
+    required this.onYearChanged,
+    required this.onDownload,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final months = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDFEFDF)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2E9900).withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2E9900).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.date_range_rounded, color: Color(0xFF2E9900), size: 16),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                "Periode Rekapan",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1A2E1A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4FAF2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFDFEFDF)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: selectedMonth,
+                      isExpanded: true,
+                      dropdownColor: Colors.white,
+                      style: const TextStyle(
+                        color: Color(0xFF1A2E1A),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                      items: List.generate(12, (index) {
+                        return DropdownMenuItem(
+                          value: index + 1,
+                          child: Text(months[index]),
+                        );
+                      }),
+                      onChanged: (val) {
+                        if (val != null) onMonthChanged(val);
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4FAF2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFDFEFDF)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int>(
+                      value: selectedYear,
+                      isExpanded: true,
+                      dropdownColor: Colors.white,
+                      style: const TextStyle(
+                        color: Color(0xFF1A2E1A),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                      items: List.generate(10, (index) {
+                        final y = DateTime.now().year - 5 + index;
+                        return DropdownMenuItem(
+                          value: y,
+                          child: Text(y.toString()),
+                        );
+                      }),
+                      onChanged: (val) {
+                        if (val != null) onYearChanged(val);
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onDownload,
+              icon: const Icon(Icons.download_rounded, size: 18),
+              label: const Text(
+                "Unduh Rekapan Excel (CSV)",
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E9900),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
